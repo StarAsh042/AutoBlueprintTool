@@ -146,7 +146,6 @@ class GlobalSettingsDialog(QDialog):
 
         # 添加说明文字
         info_label = QLabel("绑定单个窗口可选择执行模式，绑定多个窗口将自动使用后台模式")
-        info_label.setStyleSheet("color: #666666; font-size: 9pt;")
         window_layout.addWidget(info_label)
         window_layout.addSpacing(5)
 
@@ -231,7 +230,6 @@ class GlobalSettingsDialog(QDialog):
         start_task_container = QVBoxLayout()
         start_task_label = QLabel("启动任务")
         start_task_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        start_task_label.setStyleSheet("font-size: 12px; color: #666;")
         self.start_task_hotkey = QLineEdit()
         self.start_task_hotkey.setText(current_config.get('start_task_hotkey', 'F9'))
         self.start_task_hotkey.setPlaceholderText("F9")
@@ -245,7 +243,6 @@ class GlobalSettingsDialog(QDialog):
         stop_task_container = QVBoxLayout()
         stop_task_label = QLabel("停止任务")
         stop_task_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        stop_task_label.setStyleSheet("font-size: 12px; color: #666;")
         self.stop_task_hotkey = QLineEdit()
         self.stop_task_hotkey.setText(current_config.get('stop_task_hotkey', 'F10'))
         self.stop_task_hotkey.setPlaceholderText("F10")
@@ -259,7 +256,6 @@ class GlobalSettingsDialog(QDialog):
         record_container = QVBoxLayout()
         record_label = QLabel("录制控制")
         record_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        record_label.setStyleSheet("font-size: 12px; color: #666;")
         self.record_hotkey = QLineEdit()
         self.record_hotkey.setText(current_config.get('record_hotkey', 'F12'))
         self.record_hotkey.setPlaceholderText("F12")
@@ -277,6 +273,38 @@ class GlobalSettingsDialog(QDialog):
 
         hotkey_main_layout.addLayout(hotkey_row_layout)
         main_layout.addWidget(self.hotkey_group)
+
+        # --- Theme Settings Group ---
+        self.theme_group = QGroupBox("主题设置")
+        theme_layout = QVBoxLayout(self.theme_group)
+        theme_layout.setSpacing(8)
+        theme_layout.setContentsMargins(15, 10, 15, 10)
+
+        # 主题选择下拉框
+        theme_select_layout = QHBoxLayout()
+        theme_label = QLabel("应用主题:")
+        theme_label.setFixedWidth(80)
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(["跟随系统", "明亮模式", "暗色模式"])
+
+        # 从配置中加载当前主题
+        theme_config = current_config.get('theme', 'system')
+        if theme_config == 'light':
+            self.theme_combo.setCurrentText("明亮模式")
+        elif theme_config == 'dark':
+            self.theme_combo.setCurrentText("暗色模式")
+        else:
+            self.theme_combo.setCurrentText("跟随系统")
+
+        theme_select_layout.addWidget(theme_label)
+        theme_select_layout.addWidget(self.theme_combo)
+        theme_layout.addLayout(theme_select_layout)
+
+        # 添加说明
+        theme_info_label = QLabel("跟随系统主题会自动切换明暗模式")
+        theme_layout.addWidget(theme_info_label)
+
+        main_layout.addWidget(self.theme_group)
 
         # --- Custom Resolution Group ---
         resolution_group = QGroupBox("自定义分辨率 (0 = 禁用)")
@@ -310,28 +338,11 @@ class GlobalSettingsDialog(QDialog):
         button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
 
-        # 设置按钮样式
-        self.setStyleSheet("""
-            QPushButton#ok_button {
-                background-color: #007bff;
-                color: white;
-            }
-            QPushButton#ok_button:hover {
-                background-color: #0056b3;
-            }
-            QPushButton#cancel_button {
-                background-color: #f8f8f8;
-                color: #555555;
-                border: 1px solid #e0e0e0;
-            }
-            QPushButton#cancel_button:hover {
-                background-color: #eeeeee;
-                border-color: #cccccc;
-            }
-        """)
-        # 设置按钮对象名称用于样式
-        ok_button.setObjectName("ok_button")
-        cancel_button.setObjectName("cancel_button")
+
+        # 设置按钮对象名称（使用主题样式的 primaryButton 选择器）
+        ok_button.setObjectName("primaryButton")
+        cancel_button.setObjectName("")
+
 
         # --- Connect signals ---
 
@@ -352,49 +363,10 @@ class GlobalSettingsDialog(QDialog):
 
 
 
-        # --- Apply Flat Stylesheet ---
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #ffffff;
-                font-size: 10pt;
-            }
-            QGroupBox {
-                font-weight: bold;
-                border: none;
-                border-radius: 6px;
-                margin-top: 8px;
-                padding: 8px;
-                background-color: #f8f8f8;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top left;
-                padding: 0 8px;
-                left: 15px;
-                color: #555555;
-            }
-            QLineEdit, QComboBox, QSpinBox, QListWidget {
-                padding: 8px;
-                border: 1px solid #e0e0e0;
-                border-radius: 4px;
-                background-color: white;
-                min-height: 20px;
-            }
-            QPushButton {
-                padding: 8px 18px;
-                border: none;
-                border-radius: 4px;
-                background-color: #e8e8e8;
-                color: #333333;
-            }
-            QPushButton:hover {
-                background-color: #dddddd;
-            }
-            QPushButton:checked {
-                background-color: #007bff;
-                color: white;
-            }
-        """)
+        # --- Apply Theme-Aware Stylesheet ---
+        # 注意：不再设置硬编码的白色样式表，而是使用全局主题样式表
+        # 只有特定的按钮样式需要保留
+        pass  # 全局样式表已经通过 app.setStyleSheet() 应用到整个应用程序
 
         # 初始化完成后自动调整大小
         self._adjust_dialog_size()
@@ -2371,6 +2343,15 @@ class GlobalSettingsDialog(QDialog):
         window_count = len(self.bound_windows)
         window_binding_mode = 'multiple' if window_count > 1 else 'single'
 
+        # 获取主题设置
+        theme_text = self.theme_combo.currentText()
+        if theme_text == "明亮模式":
+            theme_mode = 'light'
+        elif theme_text == "暗色模式":
+            theme_mode = 'dark'
+        else:
+            theme_mode = 'system'
+
         settings = {
             'execution_mode': internal_mode,
             'operation_mode': 'auto',  # 默认使用自动检测
@@ -2382,7 +2363,9 @@ class GlobalSettingsDialog(QDialog):
             # 快捷键设置
             'start_task_hotkey': self.start_task_hotkey.text().strip() or 'F9',
             'stop_task_hotkey': self.stop_task_hotkey.text().strip() or 'F10',
-            'record_hotkey': self.record_hotkey.text().strip() or 'F12'
+            'record_hotkey': self.record_hotkey.text().strip() or 'F12',
+            # 主题设置
+            'theme': theme_mode
         }
 
         # 根据窗口数量设置target_window_title
@@ -2525,6 +2508,10 @@ class MainWindow(QMainWindow):
     # Accept task_modules, initial_config, hardware_id, license_key, save_config_func, images_dir, and state managers in constructor
     def __init__(self, task_modules: Dict[str, Any], initial_config: dict, hardware_id: str, license_key: str, save_config_func, images_dir: str, task_state_manager=None):
         super().__init__()
+
+        # 确保背景色正确应用（支持主题系统）
+        self.setAutoFillBackground(True)
+
         self.task_modules = task_modules # Store the task modules
         self.save_config_func = save_config_func # Store the save function
         self.hardware_id = hardware_id # Store validated HW ID
@@ -3077,6 +3064,25 @@ class MainWindow(QMainWindow):
                 self.config.update(settings)
 
                 logger.info(f"更新配置字典后，self.config['bound_windows']: {len(self.config.get('bound_windows', []))} 个")
+
+                # 应用主题设置
+                try:
+                    theme_mode_str = settings.get('theme', 'system')
+                    from ui.theme import ThemeManager, ThemeMode
+
+                    # 将字符串转换为 ThemeMode 枚举
+                    theme_map = {
+                        'light': ThemeMode.LIGHT,
+                        'dark': ThemeMode.DARK,
+                        'system': ThemeMode.SYSTEM
+                    }
+                    theme_mode = theme_map.get(theme_mode_str, ThemeMode.SYSTEM)
+
+                    theme_manager = ThemeManager.instance()
+                    theme_manager.set_theme(theme_mode)
+                    logger.info(f"主题已切换为: {theme_mode_str}")
+                except Exception as e:
+                    logger.warning(f"应用主题设置失败: {e}")
 
                 # 应用操作模式设置到全局输入模拟器管理器
                 try:

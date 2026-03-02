@@ -118,39 +118,7 @@ class CustomMessageDialog(QDialog):
         button_container_layout.addStretch(1)
         button_container_layout.addWidget(self.button_box)
         main_layout.addLayout(button_container_layout)
-
-        # 设置对话框样式
-        self.setStyleSheet("""
-            QDialog { 
-                background: solid #ffffff; 
-                border: 1px solid #cccccc; 
-                border-radius: 4px; 
-            }
-            QLabel { 
-                background-color: transparent; 
-            }
-            QPushButton {
-                background-color: #f5f5f5;
-                border: 1px solid #d9d9d9;
-                padding: 6px 16px;
-                border-radius: 4px;
-                min-height: 20px;
-                min-width: 80px;
-                color: #333333;
-            }
-            QPushButton:hover {
-                background-color: #e6e6e6;
-                border-color: #cccccc;
-            }
-            QPushButton:pressed {
-                background-color: #d9d9d9;
-            }
-            /* 确定按钮特殊样式 */
-            QPushButton[text="确定"] {
-                background-color: #f5f5f5;
-                color: #333333;
-            }
-        """)
+        # 样式现在由全局主题系统管理
 
         self.setMinimumWidth(400)
         self.adjustSize()
@@ -350,31 +318,10 @@ class ErrorMessageBox:
             button_layout.addWidget(ok_button)
         
         main_layout.addLayout(button_layout)
-        
+
         # 设置最小宽度，确保其与截图一致
         dialog.setMinimumWidth(400)
-        
-        # 设置对话框样式
-        dialog.setStyleSheet("""
-            QDialog {
-                background-color: white;
-                border: 1px solid #cccccc;
-            }
-            QPushButton {
-                background-color: #F5F5F5;
-                border: 1px solid #D9D9D9;
-                border-radius: 3px;
-                padding: 5px 10px;
-                min-height: 25px;
-            }
-            QPushButton:hover {
-                background-color: #E6E6E6;
-                border-color: #BDBDBD;
-            }
-            QPushButton:pressed {
-                background-color: #D6D6D6;
-            }
-        """)
+        # 样式现在由全局主题系统管理
         
         return dialog
     

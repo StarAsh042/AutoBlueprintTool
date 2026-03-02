@@ -2607,186 +2607,49 @@ if __name__ == "__main__":
     from ui.message_box_translator import setup_message_box_translations
     setup_message_box_translations()
 
-    # Apply stylesheet to the entire application
-    app.setStyleSheet("""
-        /* General Flat Look */
-        QWidget {
-            color: #333333; /* Default dark gray text */
-        }
-
-        /* Dialogs (including QMessageBox) - MORE EXPLICIT BACKGROUND */
-        QDialog, QMessageBox {
-            /* background-color: #f8f8f8; */ /* Old */
-            background: solid #f8f8f8; /* Consistent light solid background */
-            border-radius: 8px;
-        }
-
-        /* Group Boxes */
-        QGroupBox {
-            font-weight: bold;
-            border: 1px solid #e0e0e0; /* Subtle border */
-            border-radius: 6px;
-            margin-top: 10px;
-            padding: 15px 10px 10px 10px; /* More top padding for title */
-            background-color: #ffffff; /* White background inside group */
-        }
-        QGroupBox::title {
-            subcontrol-origin: margin;
-            subcontrol-position: top left;
-            padding: 0 5px;
-            left: 10px;
-            color: #555555;
-            background-color: #f8f8f8; /* Match dialog background */
-        }
-
-        /* Buttons */
-        QPushButton {
-            background-color: #e8e8e8;
-            border: none; /* Flat */
-            padding: 8px 18px;
-            border-radius: 4px;
-            color: #333333;
-            min-height: 20px;
-            outline: none; /* 禁用焦点虚线边框 */
-        }
-        QPushButton:focus {
-            outline: none; /* 确保焦点状态下也没有虚线边框 */
-        }
-        QPushButton:hover {
-            background-color: #dddddd;
-        }
-        QPushButton:pressed {
-            background-color: #d0d0d0;
-        }
-        QPushButton:disabled {
-            background-color: #f0f0f0;
-            color: #aaaaaa;
-        }
-        /* Primary Button Style (e.g., OK, Yes in QMessageBox) */
-        QDialogButtonBox QPushButton[StandardButton="2048"], /* OK */
-        QMessageBox QPushButton[StandardButton="16384"],    /* Yes */
-        QPushButton#ok_button /* Specific object name example */
-         {
-             background-color: #007bff;
-             color: white;
-         }
-        QDialogButtonBox QPushButton[StandardButton="2048"]:hover,
-        QMessageBox QPushButton[StandardButton="16384"]:hover,
-        QPushButton#ok_button:hover {
-             background-color: #0056b3;
-         }
-        QDialogButtonBox QPushButton[StandardButton="2048"]:pressed,
-        QMessageBox QPushButton[StandardButton="16384"]:pressed,
-        QPushButton#ok_button:pressed {
-             background-color: #004085;
-         }
-
-        /* Input Fields */
-        QLineEdit, QComboBox, QSpinBox {
-            padding: 8px;
-            border: 1px solid #e0e0e0; /* Lighter border */
-            border-radius: 4px;
-            background-color: white;
-            min-height: 20px;
-            color: #333333;
-        }
-        QLineEdit:focus, QComboBox:focus, QSpinBox:focus {
-             border-color: #007bff; /* Highlight focus */
-        }
-        QComboBox::drop-down {
-            border: none;
-            width: 20px;
-        }
-        QComboBox::down-arrow {
-             /* Maybe use a character arrow for flatter look if needed */
-             /* image: none; */
-             /* content: "▼"; */ 
-             image: url(:/qt-project.org/styles/commonstyle/images/down_arrow.png); /* Default */
-             width: 12px;
-             height: 12px;
-        }
-        QSpinBox { padding-right: 1px; } /* Prevent text overlap */
-        QSpinBox::up-button, QSpinBox::down-button {
-            subcontrol-origin: border;
-            background-color: #f0f0f0;
-            border: none;
-            width: 18px;
-            border-radius: 2px;
-        }
-        QSpinBox::up-button { subcontrol-position: top right; margin: 1px 1px 0px 1px; }
-        QSpinBox::down-button { subcontrol-position: bottom right; margin: 0px 1px 1px 1px; }
-        QSpinBox::up-button:hover, QSpinBox::down-button:hover { background-color: #e0e0e0; }
-        QSpinBox::up-arrow { /* Use standard icons */ image: url(:/qt-project.org/styles/commonstyle/images/up_arrow.png); width: 10px; height: 10px; }
-        QSpinBox::down-arrow { image: url(:/qt-project.org/styles/commonstyle/images/down_arrow.png); width: 10px; height: 10px; }
-
-        /* Menu */
-        QMenu {
-            background-color: #ffffff;
-            border: 1px solid #d0d0d0;
-            border-radius: 6px;
-            padding: 6px;
-            color: #333333;
-        }
-        QMenu::item {
-            padding: 5px 20px;
-            background-color: transparent;
-            border-radius: 4px;
-            color: #333333;
-        }
-        QMenu::item:selected {
-            background-color: #0078d7;
-            color: white;
-        }
-        QMenu::item:disabled {
-            color: #aaaaaa;
-        }
-        QMenu::separator {
-            height: 1px;
-            background: #e0e0e0;
-            margin: 4px 8px;
-        }
+    # --- ADDED: Initialize Windows 11 Fluent Design Theme System ---
+    logging.info("初始化 Windows 11 Fluent Design 主题系统...")
+    try:
+        from ui.theme import ThemeManager, get_current_stylesheet
         
-        /* Ensure MainWindow background consistency */
-        #CentralFrame {
-            background-color: #f0f0f0;
-            border-radius: 10px; /* Match window rounding */
-        }
-        /* CustomTitleBar Background (redundant with below?) */
-        /* CustomTitleBar { background-color: #f0f0f0; } */
+        # 读取主题配置
+        theme_config = config.get('theme', 'system')
         
-        /* Ensure Title Bar buttons match general style */
-        CustomTitleBar QPushButton {
-            background-color: transparent; /* Usually best for title bars */
-            padding: 6px;
-            min-height: 0px; /* Override general button height */
-            min-width: 0px;  /* Override general button width */
-        }
-         CustomTitleBar QPushButton:hover {
-             background-color: rgba(0, 0, 0, 0.1); /* Subtle hover */
-         }
-         CustomTitleBar QPushButton:pressed {
-             background-color: rgba(0, 0, 0, 0.2); /* Subtle press */
-         }
-         
-        /* Style specific title bar buttons if needed by object name */
-        /* #minimizeButton { ... } */
-        /* #maximizeButton { ... } */
-        /* #closeButton { ... } */
-        /* #closeButton:hover { background-color: red; color: white; } */
+        # 初始化主题管理器
+        theme_manager = ThemeManager.instance()
+        theme_manager.initialize(theme_config)
+        
+        # 将主题管理器设置为app属性，使其全局可访问
+        app.theme_manager = theme_manager
 
-        /* Ensure MessageBox labels are transparent */
-        QLabel#qt_msgbox_label, QLabel#qt_msgboxex_icon_label {
-            background-color: transparent;
-        }
+        # 连接主题变化信号，自动更新样式表
+        def on_theme_changed(mode):
+            """主题变化回调"""
+            from ui.theme import get_current_stylesheet, ThemeMode
 
-        /* MODIFIED: Extremely simplified QToolTip Styling */
-        QToolTip {
-            color: black; /* Basic black text */
-            background: white; /* Basic solid white background */
-            border: none; /* No border */
-            padding: 2px; /* Minimal padding */
-        }
-    """)
+            # 兼容处理：mode 可能是 ThemeMode 枚举或字符串
+            if isinstance(mode, ThemeMode):
+                mode_str = mode.value
+            else:
+                mode_str = str(mode)
+
+            app.setStyleSheet(get_current_stylesheet())
+            logging.info(f"主题已切换，样式表已更新: {mode_str}")
+
+        theme_manager.theme_changed.connect(on_theme_changed)
+
+        # 应用动态样式表
+        app.setStyleSheet(get_current_stylesheet())
+
+        logging.info(f"主题系统初始化完成: 配置={theme_config}, 实际={theme_manager.get_current_mode().value}")
+    except Exception as theme_error:
+        logging.error(f"主题系统初始化失败: {theme_error}")
+        # 回退到默认亮色样式
+        app.setStyleSheet("""
+            QWidget { color: #333333; }
+            QMainWindow { background-color: #f3f3f3; }
+            QDialog { background-color: #f3f3f3; border-radius: 8px; }
+        """)
     # -----------------------------------------------------------
 
     # --- ADDED: Initialize State Management System ---

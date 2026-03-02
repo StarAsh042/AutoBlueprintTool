@@ -23,6 +23,14 @@ import os # <<< ADDED: Import os for file operations
 
 logger = logging.getLogger(__name__) # <<< ADDED: Define module-level logger
 
+# Import theme system
+try:
+    from ui.theme import ThemeManager, ThemeMode
+    THEME_AVAILABLE = True
+except ImportError:
+    THEME_AVAILABLE = False
+    logger.warning("主题系统不可用，WorkflowView将使用默认颜色")
+
 # --- MOVED TaskCard import earlier for Signal definition ---
 from .task_card import TaskCard, PORT_TYPES # Import TaskCard and PORT_TYPES
 # ----------------------------------------------------------
@@ -99,9 +107,12 @@ class WorkflowView(QGraphicsView):
         self.drag_start_card: Optional[TaskCard] = None
         self.drag_start_port_type: Optional[str] = None
         self.temp_line: Optional[QGraphicsLineItem] = None
-        self.temp_line_pen = QPen(Qt.GlobalColor.black, 1.5, Qt.PenStyle.DashLine) # Dashed line for temp
-        self.temp_line_snap_pen = QPen(QColor(0, 120, 215), 2.0, Qt.PenStyle.DashLine) # Blue, thicker when snapping
-
+        
+        # 初始化主题颜色
+        self._init_theme_colors()
+        if THEME_AVAILABLE:
+            self._connect_theme_signals()
+        
         # Snapping state
         self.is_snapped = False
         self.snapped_target_card: Optional[TaskCard] = None
@@ -792,6 +803,50 @@ class WorkflowView(QGraphicsView):
             except:
                 pass
 
+    def _init_theme_colors(self):
+        """初始化主题颜色"""
+        if THEME_AVAILABLE:
+            try:
+                theme_manager = ThemeManager.instance()
+                colors = theme_manager.get_palette()
+            except Exception as e:
+                logger.warning(f"获取主题颜色失败: {e}")
+                colors = None
+        else:
+            colors = None
+        
+        if colors:
+            # 设置临时连线颜色
+            self.temp_line_pen = QPen(QColor(colors["text_disabled"]), 1.5, Qt.PenStyle.DashLine)
+            self.temp_line_snap_pen = QPen(QColor(colors["primary"]), 2.0, Qt.PenStyle.DashLine)
+            # 设置背景色
+            self.setBackgroundBrush(QBrush(QColor(colors["workflow_background"])))
+        else:
+            # 使用默认颜色
+            self.temp_line_pen = QPen(Qt.GlobalColor.black, 1.5, Qt.PenStyle.DashLine)
+            self.temp_line_snap_pen = QPen(QColor(0, 120, 215), 2.0, Qt.PenStyle.DashLine)
+    
+    def _connect_theme_signals(self):
+        """连接主题变化信号"""
+        try:
+            theme_manager = ThemeManager.instance()
+            theme_manager.theme_changed.connect(self._on_theme_changed)
+        except Exception as e:
+            logger.warning(f"连接主题信号失败: {e}")
+    
+    def _on_theme_changed(self, mode: ThemeMode):
+        """主题变化回调"""
+        self._init_theme_colors()
+        # 重绘所有连接线
+        for connection in self.connections:
+            if hasattr(connection, 'set_line_color'):
+                connection.set_line_color()
+        self.scene.update()
+
+        # 兼容处理：mode 可能是 ThemeMode 枚举或字符串
+        mode_str = mode.value if hasattr(mode, 'value') else str(mode)
+        logger.debug(f"WorkflowView 主题更新为: {mode_str}")
+
     def wheelEvent(self, event: QWheelEvent):
         """Handles mouse wheel events for zooming."""
         # Check if Ctrl key is pressed (optional: zoom only with Ctrl)
@@ -1268,39 +1323,41 @@ class WorkflowView(QGraphicsView):
 
         menu = QMenu(self)
 
-        # --- MODIFIED: Style similar to Task Cards (Solid, Light Background, Rounded, No Black) --- 
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #f8f8f8; /* Light gray background */
-                border: 1px solid #d0d0d0;   /* Softer border */
-                border-radius: 6px;        
-                padding: 6px;             
-                color: #333333;          /* Dark gray text */
-            }
-            QMenu::item {
-                padding: 5px 20px;      
-                background-color: transparent; 
-                border-radius: 4px; 
-                color: #333333; /* Ensure item text is also dark gray */
-            }
-            QMenu::item:selected {
-                background-color: #0078d7; 
-                color: white;
-            }
-            /* Style for disabled items */
-            QMenu::item:disabled {
-                color: #aaaaaa; 
-                background-color: transparent; 
-            }
-            QMenu::separator {
-                height: 1px;
-                background: #e0e0e0; 
-                margin-left: 8px;
-                margin-right: 8px;
-                margin-top: 4px;
-                margin-bottom: 4px;
-            }
-        """)
+        # --- 使用主题系统设置菜单样式 --- 
+        try:
+            from ui.theme import ThemeManager
+            theme_mode = ThemeManager.instance().get_current_mode()
+            from ui.theme.fluent_colors import FluentColors
+            colors = FluentColors.get_palette(theme_mode)
+            menu.setStyleSheet(f"""
+                QMenu {{
+                    background-color: {colors["surface"]};
+                    border: 1px solid {colors["border"]};
+                    border-radius: 8px;
+                    padding: 8px;
+                    color: {colors["text_primary"]};
+                }}
+                QMenu::item {{
+                    padding: 8px 24px;
+                    background-color: transparent;
+                    border-radius: 4px;
+                    color: {colors["text_primary"]};
+                }}
+                QMenu::item:selected {{
+                    background-color: {colors["primary"]};
+                    color: {colors["text_on_primary"]};
+                }}
+                QMenu::item:disabled {{
+                    color: {colors["text_disabled"]};
+                }}
+                QMenu::separator {{
+                    height: 1px;
+                    background-color: {colors["divider"]};
+                    margin: 8px 12px;
+                }}
+            """)
+        except Exception as e:
+            print(f"[WARN] Failed to apply theme to context menu: {e}")
         # -------------------------------------------------------------------------------
 
         # --- Restore logic to handle clicks on items OR background --- 

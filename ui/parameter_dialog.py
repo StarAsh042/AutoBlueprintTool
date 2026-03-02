@@ -32,6 +32,9 @@ class ParameterDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.setMinimumWidth(500) # 加宽界面以提供更好的显示效果
+
+        # 确保背景色正确应用（支持主题系统）
+        self.setAutoFillBackground(True)
         # 工具 修复：不设置固定初始大小，让对话框根据内容自动调整
         # self.resize(500, 400) # 设置初始大小
 
@@ -453,13 +456,28 @@ class ParameterDialog(QDialog):
                 # 检查是否为只读
                 if param_def.get('readonly', False):
                     line_edit.setReadOnly(True)
-                    line_edit.setStyleSheet("""
-                        QLineEdit {
-                            background-color: #f0f0f0;
-                            color: #666666;
-                            border: 1px solid #cccccc;
-                        }
-                    """)
+                    # 使用主题颜色（如果可用）
+                    try:
+                        from ui.theme import ThemeManager
+                        from ui.theme.fluent_colors import FluentColors
+                        theme_mode = ThemeManager.instance().get_current_mode()
+                        colors = FluentColors.get_palette(theme_mode)
+                        line_edit.setStyleSheet(f"""
+                            QLineEdit {{
+                                background-color: {colors["background_secondary"]};
+                                color: {colors["text_disabled"]};
+                                border: 1px solid {colors["border"]};
+                            }}
+                        """)
+                    except:
+                        # 如果主题系统不可用，使用默认样式
+                        line_edit.setStyleSheet("""
+                            QLineEdit {
+                                background-color: #f0f0f0;
+                                color: #666666;
+                                border: 1px solid #cccccc;
+                            }
+                        """)
 
                 # 特殊处理：坐标显示控件设为只读
                 if name == 'region_coordinates':
@@ -1349,7 +1367,15 @@ class ParameterDialog(QDialog):
         layout.setContentsMargins(0, 10, 0, 5)
 
         title_label = QLabel(title)
-        title_label.setStyleSheet("font-weight: bold; color: #666;")
+        # 使用主题颜色
+        try:
+            from ui.theme import ThemeManager
+            theme_mode = ThemeManager.instance().get_current_mode()
+            from ui.theme.fluent_colors import FluentColors
+            colors = FluentColors.get_palette(theme_mode)
+            title_label.setStyleSheet(f"font-weight: bold; color: {colors['text_secondary']};")
+        except Exception:
+            title_label.setStyleSheet("font-weight: bold; color: #666666;")
 
         layout.addWidget(title_label)
         layout.addWidget(separator)
@@ -1505,162 +1531,123 @@ class ParameterDialog(QDialog):
 
     def _apply_stylesheet(self):
         """Applies a modern-looking stylesheet to the dialog."""
-        qss = """
-        QDialog {
-            background-color: #f8f9fa; /* Light background */
+        # 尝试使用主题系统，如果失败则使用默认样式
+        try:
+            from ui.theme import ThemeManager
+            theme_mode = ThemeManager.instance().get_current_mode()
+            from ui.theme.fluent_colors import FluentColors
+            colors = FluentColors.get_palette(theme_mode)
+            bg = colors["background"]
+            ctrl_bg = colors["control_background"]
+            text_p = colors["text_primary"]
+            text_s = colors["text_secondary"]
+            border_c = colors["border"]
+            primary_c = colors["primary"]
+            ctrl_hover = colors["control_hover"]
+            ctrl_pressed = colors["control_pressed"]
+            text_on_p = colors["text_on_primary"]
+            bg_sec = colors["background_secondary"]
+            text_disabled = colors["text_disabled"]
+            border_strong = colors["border_strong"]
+        except:
+            # 默认亮色主题
+            bg = "#f8f9fa"
+            ctrl_bg = "#ffffff"
+            text_p = "#343a40"
+            text_s = "#495057"
+            border_c = "#ced4da"
+            primary_c = "#007bff"
+            ctrl_hover = "#e9ecef"
+            ctrl_pressed = "#dee2e6"
+            text_on_p = "#ffffff"
+            bg_sec = "#e9ecef"
+            text_disabled = "#6c757d"
+            border_strong = "#adb5bd"
+
+        qss = f"""
+        QDialog {{
+            background-color: {bg};
             font-family: "Segoe UI", Arial, sans-serif;
-        }
+        }}
 
-        QLabel {
+        QLabel {{
             font-size: 9pt;
-            color: #343a40; /* Darker text */
-        }
-        
-        QLabel[alignment="AlignCenter"] {
-            color: #495057; /* Slightly lighter for separators */
-            margin-top: 8px; 
-            margin-bottom: 4px;
-        }
+            color: {text_p};
+        }}
 
-        QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {
+        QLabel[alignment="AlignCenter"] {{
+            color: {text_s};
+            margin-top: 8px;
+            margin-bottom: 4px;
+        }}
+
+        QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox {{
             font-size: 9pt;
             padding: 5px 8px;
-            border: 1px solid #ced4da; /* Light grey border */
+            border: 1px solid {border_c};
             border-radius: 4px;
-            background-color: #ffffff; /* White background */
-            color: #495057;
-            /* qproperty-alignment: 'AlignLeft | AlignVCenter'; /* Apply only to QLineEdit below */
-        }
-        
-        QLineEdit {
-             qproperty-alignment: 'AlignLeft | AlignVCenter'; /* Apply alignment only here */
-        }
-        
-        /* Explicitly target LineEdit inside SpinBoxes - Removed as ineffective */
-        /* 
-        QSpinBox QLineEdit, 
-        QDoubleSpinBox QLineEdit {
-             qproperty-alignment: 'AlignLeft | AlignVCenter'; 
-        }
-        */
+            background-color: {ctrl_bg};
+            color: {text_p};
+        }}
 
-        QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {
-            border-color: #80bdff; /* Blue border on focus */
-            outline: none; /* Remove default outline */
-        }
-        
-        QComboBox::drop-down {
+        QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{
+            border-color: {primary_c};
+            outline: none;
+        }}
+
+        QComboBox::drop-down {{
             subcontrol-origin: padding;
             subcontrol-position: top right;
             width: 15px;
             border-left-width: 1px;
-            border-left-color: #ced4da;
+            border-left-color: {border_c};
             border-left-style: solid;
             border-top-right-radius: 3px;
             border-bottom-right-radius: 3px;
-        }
-        
-        QComboBox::down-arrow {
-            image: url(icons/down_arrow.png); /* Needs an icon */
-            width: 10px;
-            height: 10px;
-        }
-        
-        /* Style for QSpinBox and QDoubleSpinBox buttons */
-        QSpinBox::up-button, QDoubleSpinBox::up-button,
-        QSpinBox::down-button, QDoubleSpinBox::down-button {
-            subcontrol-origin: border;
-            width: 16px;
-            border-left-width: 1px;
-            border-left-color: #ced4da;
-            border-left-style: solid;
-            border-radius: 0px;
-        }
-        QSpinBox::up-button, QDoubleSpinBox::up-button { subcontrol-position: top right; border-top-right-radius: 3px; }
-        QSpinBox::down-button, QDoubleSpinBox::down-button { subcontrol-position: bottom right; border-bottom-right-radius: 3px; }
-        
-        QSpinBox::up-arrow, QDoubleSpinBox::up-arrow { image: url(icons/up_arrow.png); width: 10px; height: 10px; }
-        QSpinBox::down-arrow, QDoubleSpinBox::down-arrow { image: url(icons/down_arrow.png); width: 10px; height: 10px; }
+        }}
 
-        QPushButton {
+        QPushButton {{
             font-size: 9pt;
             padding: 6px 15px;
-            border: 1px solid #adb5bd;
+            border: 1px solid {border_c};
             border-radius: 4px;
-            background-color: #ffffff;
-            color: #495057;
-            min-width: 60px; /* Ensure buttons have some minimum width */
-        }
-        
-        QPushButton:hover {
-            background-color: #e9ecef; /* Light hover effect */
-            border-color: #6c757d;
-        }
-        
-        QPushButton:pressed {
-            background-color: #dee2e6; /* Slightly darker pressed */
-        }
-        
-        /* Style the OK button specifically */
-        QPushButton[text="确定"] { 
-            background-color: #007bff; /* Primary blue */
-            color: white;
-            border-color: #007bff;
-        }
-        
-        QPushButton[text="确定"]:hover {
-            background-color: #0056b3; 
-            border-color: #0056b3;
-        }
-        
-        QPushButton[text="确定"]:pressed {
-            background-color: #004085;
-        }
-        
-        /* Style the browse button */
-        QPushButton[text="..."] {
-            padding: 2px 5px; /* Smaller padding */
-            min-width: 25px;
-            max-width: 25px;
-        }
-        
-        /* Style the custom spin buttons */
-        QPushButton#spinButton {
-            padding: 1px 5px; /* Very small padding */
-            min-width: 20px; /* Fixed small width */
-            max-width: 20px;
-            font-weight: bold;
-            /* Optional: Add border/background similar to spinbox buttons */
-            /* border-left: 1px solid #ced4da; */
-            /* background-color: #f0f0f0; */
-        }
+            background-color: {ctrl_bg};
+            color: {text_p};
+            min-width: 60px;
+        }}
 
-        QFrame[frameShape="4"] { /* HLine */
+        QPushButton:hover {{
+            background-color: {ctrl_hover};
+            border-color: {border_strong};
+        }}
+
+        QPushButton:pressed {{
+            background-color: {ctrl_pressed};
+        }}
+
+        QPushButton[text="确定"] {{
+            background-color: {primary_c};
+            color: {text_on_p};
+            border-color: {primary_c};
+        }}
+
+        QFrame[frameShape="4"] {{
             border: none;
-            border-top: 1px solid #e0e0e0; /* Lighter separator */
+            border-top: 1px solid {border_c};
             margin-top: 8px;
             margin-bottom: 8px;
-        }
-        
-        QCheckBox::indicator {
-            width: 16px;
-            height: 16px;
-        }
-        
-        /* Style disabled state */
-        QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QComboBox:disabled, QCheckBox:disabled {
-            background-color: #e9ecef; /* Greyed out background */
-            color: #6c757d;
-        }
-        QCheckBox::indicator:disabled {
-           /* Add specific disabled indicator style if needed */
-        }
-        QPushButton:disabled {
-             background-color: #ced4da;
-             color: #6c757d;
-             border-color: #adb5bd;
-        }
+        }}
 
+        QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QComboBox:disabled, QCheckBox:disabled {{
+            background-color: {bg_sec};
+            color: {text_disabled};
+        }}
+
+        QPushButton:disabled {{
+            background-color: {bg_sec};
+            color: {text_disabled};
+            border-color: {border_c};
+        }}
         """
         self.setStyleSheet(qss)
         

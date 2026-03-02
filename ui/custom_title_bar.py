@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
+import logging
 from typing import List
 from PySide6.QtWidgets import (
     QWidget, QHBoxLayout, QLabel, QPushButton, QStyle, QApplication, QSizePolicy, QToolButton,
@@ -8,6 +9,15 @@ from PySide6.QtWidgets import (
 # Import QIcon explicitly if needed for size setting
 from PySide6.QtCore import Qt, QPoint, QSize 
 from PySide6.QtGui import QMouseEvent, QAction, QIcon, QFontMetrics
+
+# Import theme system
+try:
+    from ui.theme import ThemeManager, ThemeMode
+    THEME_AVAILABLE = True
+except ImportError:
+    THEME_AVAILABLE = False
+
+logger = logging.getLogger(__name__)
 
 class MainWindow: pass
 
@@ -29,78 +39,14 @@ class CustomTitleBar(QWidget):
         self.setFixedHeight(36) 
         self.setObjectName("CustomTitleBar") 
         
-        # Stylesheet... (Ensure QLabel#titleLabel style exists if needed)
-        self.setStyleSheet("""
-            #CustomTitleBar {
-                background-color: #F9F9F9; /* Very light grey background */
-                color: #333333; /* Dark grey text */
-                /* border-bottom: 1px solid #E0E0E0; Optional subtle border */
-            }
-            /* Action Buttons (QToolButton) - Icon Only */
-             QToolButton {
-                background-color: transparent;
-                border: none;
-                padding: 4px; /* Adjust padding around icon */
-                margin: 1px 2px; 
-                border-radius: 4px;
-                /* Ensure icon is visible */
-                color: #333333; 
-                icon-size: 18px; /* Explicit icon size */
-            }
-             QToolButton:hover {
-                 background-color: #E8E8E8; /* Light grey hover */
-            }
-             QToolButton:pressed {
-                 background-color: #DCDCDC; /* Slightly darker pressed */
-            }
-             QToolButton:disabled {
-                 /* Icon might need specific handling for disabled state */
-                 /* color: #AAAAAA; */
-                 opacity: 0.5; /* Or make it semi-transparent */
-            }
-            /* Window Control Buttons - Using Characters */
-            QPushButton#windowButton {
-                background-color: transparent;
-                border: none;
-                padding: 0px 10px; 
-                margin: 0px 2px; /* Add small horizontal margin */
-                border-radius: 4px; /* Add border-radius */
-                color: #555555; 
-                font-family: "Segoe UI Symbol", "Segoe UI Emoji", "Arial"; 
-                font-size: 14px; 
-                font-weight: normal;
-                min-width: 36px; /* Adjust width slightly */
-                min-height: 30px; /* Adjust height slightly */
-                /* Align symbols better if needed */
-                /* vertical-align: middle; Does not work directly in Qt stylesheets */
-            }
-            QPushButton#windowButton:hover {
-                background-color: #E8E8E8; 
-                color: #111111; 
-                /* Ensure radius is kept on hover */
-                border-radius: 4px; 
-            }
-            QPushButton#windowButton:pressed {
-                background-color: #DCDCDC;
-                /* Ensure radius is kept on press */
-                border-radius: 4px; 
-            }
-            /* Close button hover: Use background color again, keep radius */
-            QPushButton#closeButton:hover {
-                background-color: #E81123; /* Restore red background */
-                color: white; 
-                border: none; /* Remove border from previous attempt */
-                border-radius: 4px;
-                 padding: 0px 10px; /* Restore padding */
-            }
-            QPushButton#closeButton:pressed {
-                 background-color: #B00000; 
-                 color: white;
-                 border: none; 
-                 border-radius: 4px;
-                 padding: 0px 10px; 
-            }
-        """)
+        # 不再设置硬编码样式表，样式由全局主题系统管理
+        # 但为了向后兼容，在没有主题系统时提供默认样式
+        if not THEME_AVAILABLE:
+            self._apply_default_stylesheet()
+        
+        # 连接主题变化信号
+        if THEME_AVAILABLE:
+            self._connect_theme_signals()
 
         main_layout = QHBoxLayout(self)
         main_layout.setContentsMargins(8, 0, 0, 0) 
@@ -173,6 +119,87 @@ class CustomTitleBar(QWidget):
         self.parent_window.windowTitleChanged.connect(self.setWindowTitle)
         # Initial positioning of title
         self.title_label.adjustSize() # Get initial size hint
+
+    def _apply_default_stylesheet(self):
+        """应用默认样式表（向后兼容）"""
+        self.setStyleSheet("""
+            #CustomTitleBar {
+                background-color: #F9F9F9;
+                color: #333333;
+            }
+            QToolButton {
+                background-color: transparent;
+                border: none;
+                padding: 4px;
+                margin: 1px 2px;
+                border-radius: 4px;
+                color: #333333;
+                icon-size: 18px;
+            }
+            QToolButton:hover {
+                background-color: #E8E8E8;
+            }
+            QToolButton:pressed {
+                background-color: #DCDCDC;
+            }
+            QPushButton#windowButton {
+                background-color: transparent;
+                border: none;
+                padding: 0px 10px;
+                margin: 0px 2px;
+                border-radius: 4px;
+                color: #555555;
+                font-family: "Segoe UI Symbol", "Segoe UI Emoji", "Arial";
+                font-size: 14px;
+                min-width: 36px;
+                min-height: 30px;
+            }
+            QPushButton#windowButton:hover {
+                background-color: #E8E8E8;
+                color: #111111;
+                border-radius: 4px;
+            }
+            QPushButton#windowButton:pressed {
+                background-color: #DCDCDC;
+                border-radius: 4px;
+            }
+            QPushButton#closeButton:hover {
+                background-color: #E81123;
+                color: white;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton#closeButton:pressed {
+                background-color: #B00000;
+                color: white;
+                border: none;
+                border-radius: 4px;
+            }
+        """)
+
+    def _connect_theme_signals(self):
+        """连接主题变化信号"""
+        try:
+            theme_manager = ThemeManager.instance()
+            theme_manager.theme_changed.connect(self._on_theme_changed)
+            # 立即应用当前主题
+            self._on_theme_changed(theme_manager.get_current_mode())
+        except Exception as e:
+            logger.warning(f"连接主题信号失败: {e}")
+
+    def _on_theme_changed(self, mode: ThemeMode):
+        """
+        主题变化回调
+        
+        Args:
+            mode: 新主题模式
+        """
+        # 标题栏样式现在由全局样式表管理
+        # 这里可以添加额外的主题相关更新
+
+        # 兼容处理：mode 可能是 ThemeMode 枚举或字符串
+        mode_str = mode.value if hasattr(mode, 'value') else str(mode)
+        logger.debug(f"标题栏主题更新: {mode_str}")
 
     # Visibility method (no change needed)
     def set_file_actions_visible(self, visible: bool):

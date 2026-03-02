@@ -20,6 +20,14 @@ from PySide6.QtCore import Qt, QRectF, QPointF, QSizeF, Signal, QTimer # <-- ADD
 from PySide6.QtGui import QBrush, QPen, QColor, QPainter, QFont, QPainterPath, QAction # <-- ADD QAction
 from ui.parameter_dialog import ParameterDialog # <<< UNCOMMENTED Import
 
+# Import theme system
+try:
+    from ui.theme import ThemeManager, ThemeMode
+    THEME_AVAILABLE = True
+except ImportError:
+    THEME_AVAILABLE = False
+    logger.warning("主题系统不可用，TaskCard将使用默认颜色")
+
 # Removed direct import of TASK_MODULES to break circular dependency
 # from tasks import TASK_MODULES 
 
@@ -90,12 +98,8 @@ class TaskCard(QGraphicsObject):
         
         # --- UNCOMMENTED Style Settings --- 
         self.border_radius = 8 
-        self.card_color = QColor(255, 255, 255) 
-        self.title_area_color = QColor(240, 240, 240) # Slightly different background for title maybe?
-        self.title_color = QColor(20, 20, 20) 
         self.port_radius = 5.0 # Increased visual radius
         self.port_border_width = 1.5 # Slightly thicker border
-        self.port_idle_color = QColor(180, 180, 180) 
         self.port_hit_radius = 12.0 # Keep hit radius large
         self.text_padding = 8 # Padding around the content area
         self.param_padding = 5 # Internal padding within the content layout
@@ -103,12 +107,14 @@ class TaskCard(QGraphicsObject):
         self.title_font = QFont("Segoe UI", 9)
         self.title_font.setBold(True) 
         self.param_font = QFont("Segoe UI", 8) 
-        self.port_colors = {
-            PORT_TYPE_SEQUENTIAL: QColor(0, 120, 215), 
-            PORT_TYPE_SUCCESS: QColor(16, 124, 16),
-            PORT_TYPE_FAILURE: QColor(196, 43, 43)
-        }
         self.port_hover_color_boost = 40 # How much brighter/lighter on hover
+
+        # 初始化主题颜色（从主题系统获取或默认值）
+        self._init_theme_colors()
+        
+        # 连接主题变化信号
+        if THEME_AVAILABLE:
+            self._connect_theme_signals()
 
         # Shadow Effect 
         self.shadow = QGraphicsDropShadowEffect()
@@ -117,27 +123,15 @@ class TaskCard(QGraphicsObject):
         self.shadow.setOffset(2, 2) 
         self.setGraphicsEffect(self.shadow)
         self.shadow.setEnabled(True)
-        self.selection_shadow_color = QColor(0, 120, 215, 100) 
         self.selection_shadow_blur = 18
         self.selection_shadow_offset = 4
-        self.default_shadow_color = self.shadow.color() 
         self.default_shadow_blur = self.shadow.blurRadius()
-        self.default_shadow_offset = self.shadow.offset().x() 
+        self.default_shadow_offset = self.shadow.offset().x()
+        self.default_shadow_color = self.shadow.color()  # 保存默认阴影颜色 
 
         # Placeholder for execution state needed by paint logic
         self.execution_state = 'idle' 
-        self.state_colors = { 
-            'idle': self.card_color,
-            'executing': QColor(200, 220, 255), # Light blue
-            'success': QColor(200, 255, 200), # Light green
-            'failure': QColor(255, 200, 200)  # Light red
-        }
-        self.state_border_pens = {
-            'idle': self.default_pen,
-            'executing': QPen(QColor(0, 100, 255), 2), # Blue border
-            'success': QPen(QColor(0, 128, 0), 2), # Green border
-            'failure': QPen(QColor(200, 0, 0), 2)  # Red border
-        }
+        # 状态颜色将在 _init_theme_colors 中设置
         # --- ADDED: Store current border pen for flash --- 
         self._current_border_pen = self.default_pen # Start with default
         self._original_border_pen_before_flash = self.default_pen
@@ -183,6 +177,115 @@ class TaskCard(QGraphicsObject):
         # Use stored width/height
         return QRectF(0, 0, self._width, self._height) 
     # -------------------------------------------------------------
+
+    def _init_theme_colors(self):
+        """初始化主题颜色，从主题系统获取或设置默认值"""
+        if THEME_AVAILABLE:
+            try:
+                theme_manager = ThemeManager.instance()
+                colors = theme_manager.get_palette()
+                is_dark = theme_manager.is_dark_mode()
+            except Exception as e:
+                logger.warning(f"获取主题颜色失败，使用默认值: {e}")
+                colors = None
+                is_dark = False
+        else:
+            colors = None
+            is_dark = False
+        
+        if colors:
+            # 从主题系统获取颜色
+            self.card_color = QColor(colors["card_background"])
+            self.title_area_color = QColor(colors["surface"])
+            self.title_color = QColor(colors["text_primary"])
+            self.port_idle_color = QColor(colors["border"])
+            self.selection_shadow_color = QColor(colors["primary"])
+            
+            # 端口颜色
+            self.port_colors = {
+                PORT_TYPE_SEQUENTIAL: QColor(colors["port_sequential"]),
+                PORT_TYPE_SUCCESS: QColor(colors["port_success"]),
+                PORT_TYPE_FAILURE: QColor(colors["port_failure"])
+            }
+            
+            # 状态颜色 - 根据明暗模式调整
+            if is_dark:
+                self.state_colors = {
+                    'idle': self.card_color,
+                    'executing': QColor(30, 60, 90),  # 深蓝
+                    'success': QColor(30, 70, 30),    # 深绿
+                    'failure': QColor(80, 30, 30)     # 深红
+                }
+            else:
+                self.state_colors = {
+                    'idle': self.card_color,
+                    'executing': QColor(200, 220, 255), # 浅蓝
+                    'success': QColor(200, 255, 200),   # 浅绿
+                    'failure': QColor(255, 200, 200)    # 浅红
+                }
+            
+            # 状态边框
+            primary_color = QColor(colors["primary"])
+            success_color = QColor(colors["success"])
+            error_color = QColor(colors["error"])
+            
+            self.state_border_pens = {
+                'idle': self.default_pen,
+                'executing': QPen(primary_color, 2),
+                'success': QPen(success_color, 2),
+                'failure': QPen(error_color, 2)
+            }
+        else:
+            # 使用默认颜色
+            self.card_color = QColor(255, 255, 255)
+            self.title_area_color = QColor(240, 240, 240)
+            self.title_color = QColor(20, 20, 20)
+            self.port_idle_color = QColor(180, 180, 180)
+            self.selection_shadow_color = QColor(0, 120, 215, 100)
+            
+            self.port_colors = {
+                PORT_TYPE_SEQUENTIAL: QColor(0, 120, 215),
+                PORT_TYPE_SUCCESS: QColor(16, 124, 16),
+                PORT_TYPE_FAILURE: QColor(196, 43, 43)
+            }
+            
+            self.state_colors = {
+                'idle': self.card_color,
+                'executing': QColor(200, 220, 255),
+                'success': QColor(200, 255, 200),
+                'failure': QColor(255, 200, 200)
+            }
+            
+            self.state_border_pens = {
+                'idle': self.default_pen,
+                'executing': QPen(QColor(0, 100, 255), 2),
+                'success': QPen(QColor(0, 128, 0), 2),
+                'failure': QPen(QColor(200, 0, 0), 2)
+            }
+    
+    def _connect_theme_signals(self):
+        """连接主题变化信号"""
+        try:
+            theme_manager = ThemeManager.instance()
+            theme_manager.theme_changed.connect(self._on_theme_changed)
+        except Exception as e:
+            logger.warning(f"连接主题信号失败: {e}")
+    
+    def _on_theme_changed(self, mode: ThemeMode):
+        """
+        主题变化回调 - 更新颜色并重绘
+        
+        Args:
+            mode: 新主题模式
+        """
+        # 重新初始化颜色
+        self._init_theme_colors()
+        # 触发重绘
+        self.update()
+
+        # 兼容处理：mode 可能是 ThemeMode 枚举或字符串
+        mode_str = mode.value if hasattr(mode, 'value') else str(mode)
+        logger.debug(f"TaskCard {self.card_id} 主题更新为: {mode_str}")
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget=None):
         """Custom painting for rounded corners, title, ports, and state highlight."""
@@ -692,30 +795,41 @@ class TaskCard(QGraphicsObject):
         is_running = self._is_workflow_running()
         
         menu = QMenu()
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: white;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-            }
-            QMenu::item {
-                padding: 5px 20px;
-                color: #333;
-            }
-            QMenu::item:selected {
-                background-color: #e0e0f0;
-            }
-            QMenu::item:disabled {
-                color: #aaa;
-                background-color: transparent;
-            }
-            QMenu::separator {
-                height: 1px;
-                background: #ddd;
-                margin-left: 10px;
-                margin-right: 10px;
-            }
-        """)
+        # --- 使用主题系统设置菜单样式 ---
+        try:
+            from ui.theme import ThemeManager
+            theme_mode = ThemeManager.instance().get_current_mode()
+            from ui.theme.fluent_colors import FluentColors
+            colors = FluentColors.get_palette(theme_mode)
+            menu.setStyleSheet(f"""
+                QMenu {{
+                    background-color: {colors["surface"]};
+                    border: 1px solid {colors["border"]};
+                    border-radius: 8px;
+                    padding: 8px;
+                    color: {colors["text_primary"]};
+                }}
+                QMenu::item {{
+                    padding: 8px 24px;
+                    background-color: transparent;
+                    border-radius: 4px;
+                    color: {colors["text_primary"]};
+                }}
+                QMenu::item:selected {{
+                    background-color: {colors["primary"]};
+                    color: {colors["text_on_primary"]};
+                }}
+                QMenu::item:disabled {{
+                    color: {colors["text_disabled"]};
+                }}
+                QMenu::separator {{
+                    height: 1px;
+                    background-color: {colors["divider"]};
+                    margin: 8px 12px;
+                }}
+            """)
+        except Exception as e:
+            print(f"[WARN] Failed to apply theme to context menu: {e}")
         
         copy_action = QAction("复制卡片", menu)
         copy_action.triggered.connect(self.copy_card) # Connects to method

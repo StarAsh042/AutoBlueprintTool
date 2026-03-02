@@ -1,6 +1,6 @@
 {
-    "target_window_title": "MuMu模拟器",
-    "execution_mode": "emulator_mumu",
+    "target_window_title": null,
+    "execution_mode": "foreground_pyautogui",
     "operation_mode": "auto",
     "custom_width": 0,
     "custom_height": 0,
@@ -12,5 +12,6 @@
     "record_hotkey": "F12",
     "bound_windows": [],
     "window_binding_mode": "single",
-    "multi_window_delay": 500
+    "multi_window_delay": 500,
+    "theme": "dark"
 }

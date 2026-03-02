@@ -52,75 +52,7 @@ class SelectTaskDialog(QDialog):
         self.main_layout.addLayout(button_layout)
 
         # --- Styling --- 
-        # (Keep the previous modern stylesheet)
-        self.setStyleSheet("""
-            QDialog {
-                background-color: #FDFDFD;
-                font-family: "Microsoft YaHei", sans-serif;
-            }
-            QLabel#infoLabel {
-                font-size: 14px;
-                color: #444;
-            }
-            QComboBox#taskComboBox {
-                border: 1px solid #D0D0D0;
-                border-radius: 4px;
-                padding: 5px 10px;
-                background-color: white;
-                font-size: 13px;
-                color: #333;
-            }
-            QComboBox#taskComboBox::drop-down {
-                subcontrol-origin: padding;
-                subcontrol-position: top right;
-                width: 20px;
-                border-left-width: 1px;
-                border-left-color: #D0D0D0;
-                border-left-style: solid; 
-                border-top-right-radius: 3px; 
-                border-bottom-right-radius: 3px;
-            }
-             QComboBox#taskComboBox::down-arrow {
-                 width: 10px;
-                 height: 10px;
-            }
-            QComboBox#taskComboBox QAbstractItemView {
-                 border: 1px solid #D0D0D0;
-                 background-color: white;
-                 selection-background-color: #E0E0E0;
-                 color: #333;
-                 padding: 4px;
-             }
-            QPushButton#okButton {
-                background-color: #007AFF;
-                color: white;
-                font-size: 13px;
-                font-weight: bold;
-                border: none;
-                border-radius: 5px;
-                padding: 8px 25px;
-            }
-            QPushButton#okButton:hover {
-                background-color: #005ECB;
-            }
-            QPushButton#okButton:pressed {
-                background-color: #004BAA;
-            }
-            QPushButton#cancelButton {
-                background-color: #EAEAEA;
-                color: #444;
-                font-size: 13px;
-                border: 1px solid #D0D0D0;
-                border-radius: 5px;
-                padding: 8px 20px;
-            }
-             QPushButton#cancelButton:hover {
-                background-color: #DCDCDC;
-            }
-             QPushButton#cancelButton:pressed {
-                background-color: #C8C8C8;
-            }
-        """)
+        # 样式现在由全局主题系统管理
 
         # --- Connections --- 
         self.ok_button.clicked.connect(self.accept)

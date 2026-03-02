@@ -417,61 +417,8 @@ class ControlCenterWindow(QMainWindow):
         self.setGeometry(200, 200, 1000, 500)
         self.setMinimumSize(800, 400)
         
-        # 设置样式 - 参考主程序风格
-        self.setStyleSheet("""
-            QMainWindow {
-                background-color: #ffffff;
-                font-size: 10pt;
-            }
-            QGroupBox {
-                font-weight: bold;
-                border: none;
-                border-radius: 6px;
-                margin-top: 8px;
-                padding: 8px;
-                background-color: #f8f8f8;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top left;
-                padding: 0 8px;
-                left: 15px;
-                color: #555555;
-            }
-            QPushButton {
-                padding: 8px 18px;
-                border: none;
-                border-radius: 4px;
-                background-color: #e8e8e8;
-                color: #333333;
-            }
-            QPushButton:hover {
-                background-color: #dddddd;
-            }
-            QPushButton:disabled {
-                background-color: #cccccc;
-                color: #666666;
-            }
-            QTableWidget {
-                border: 1px solid #e0e0e0;
-                border-radius: 4px;
-                background-color: white;
-                gridline-color: #f0f0f0;
-            }
-            QTableWidget::item {
-                padding: 8px;
-                border-bottom: 1px solid #f0f0f0;
-            }
-            QTableWidget::item:selected {
-                background-color: #e3f2fd;
-            }
-            QTextEdit {
-                border: 1px solid #e0e0e0;
-                border-radius: 4px;
-                background-color: white;
-                padding: 8px;
-            }
-        """)
+        # 样式 - 现在使用全局主题样式表，不再硬编码
+        # 主题系统会自动应用 Fluent Design 样式
         
         self.init_ui()
         self.setup_timer()
@@ -533,7 +480,6 @@ class ControlCenterWindow(QMainWindow):
 
         # 添加说明文字
         info_label = QLabel("为每个窗口分配工作流并控制执行")
-        info_label.setStyleSheet("color: #666666; font-size: 9pt;")
         layout.addWidget(info_label)
         layout.addSpacing(5)
 
@@ -556,39 +502,8 @@ class ControlCenterWindow(QMainWindow):
         self.window_table.setAlternatingRowColors(True)
         self.window_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
 
-        # 设置表格样式 - 彻底移除虚线和边框
-        self.window_table.setStyleSheet("""
-            QTableWidget {
-                gridline-color: #d0d0d0;
-                background-color: white;
-                alternate-background-color: #f5f5f5;
-                selection-background-color: #3daee9;
-                selection-color: white;
-                show-decoration-selected: 1;
-            }
-            QTableWidget::item {
-                padding: 8px;
-                border: 0px;
-                color: black;
-                outline: 0px;
-            }
-            QTableWidget::item:selected {
-                background-color: #3daee9;
-                color: white;
-                border: 0px solid transparent;
-                outline: 0px;
-            }
-            QTableWidget::item:focus {
-                border: 0px solid transparent;
-                outline: 0px;
-                background-color: #3daee9;
-                color: white;
-            }
-            QTableWidget:focus {
-                outline: 0px;
-                border: 0px;
-            }
-        """)
+        # 表格样式现在由全局主题系统管理
+        self.window_table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
 
         # 设置焦点策略，进一步避免虚线
         self.window_table.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -656,7 +571,6 @@ class ControlCenterWindow(QMainWindow):
 
         # 状态标签
         self.selection_label = QLabel("请选择一个窗口进行操作")
-        self.selection_label.setStyleSheet("color: #666666; font-size: 9pt;")
         layout.addWidget(self.selection_label)
 
         return panel

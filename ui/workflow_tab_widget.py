@@ -78,42 +78,7 @@ class WorkflowTabWidget(QTabWidget):
 
         # 🔧 初始状态：没有任务时隐藏标签栏
         self.tabBar().setVisible(False)
-
-        # 设置标签栏样式 - 增强视觉效果
-        self.setStyleSheet("""
-            QTabWidget::pane {
-                border: 1px solid #c0c0c0;
-                background: white;
-                top: -1px;
-            }
-            QTabBar::tab {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                           stop:0 #f5f5f5, stop:1 #e0e0e0);
-                border: 1px solid #b0b0b0;
-                border-bottom: 1px solid #c0c0c0;
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-                padding: 6px 16px;
-                margin-right: 2px;
-                min-width: 80px;
-                color: #333333;
-                font-weight: normal;
-            }
-            QTabBar::tab:selected {
-                background: white;
-                border-bottom: 1px solid white;
-                color: #000000;
-                font-weight: bold;
-                margin-bottom: -1px;
-            }
-            QTabBar::tab:hover:!selected {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                                           stop:0 #ffffff, stop:1 #f0f0f0);
-            }
-            QTabBar::tab:!selected {
-                margin-top: 2px;
-            }
-        """)
+        # 样式现在由全局主题系统管理
 
         # 添加"+"导入按钮标签页
         self._add_import_tab()

@@ -304,10 +304,31 @@ class ParameterPanel(QWidget):
         else:
             super().mouseReleaseEvent(event)
         
+    def _get_theme_colors(self):
+        """获取主题颜色"""
+        try:
+            from ui.theme import ThemeManager
+            theme_mode = ThemeManager.instance().get_current_mode()
+            from ui.theme.fluent_colors import FluentColors
+            return FluentColors.get_palette(theme_mode)
+        except Exception:
+            return None
+
     def _setup_ui(self):
         """设置UI布局"""
         self.setFixedWidth(480)  # 增加宽度以容纳更长的输入框
         self.setMinimumHeight(400)
+        
+        # 获取主题颜色
+        colors = self._get_theme_colors()
+        if colors:
+            bg_sec = colors.get("background_secondary", "#f0f0f0")
+            text_on_primary = colors.get("text_on_primary", "#ffffff")
+            surface = colors.get("surface", "#ffffff")
+        else:
+            bg_sec = "#f0f0f0"
+            text_on_primary = "#ffffff"
+            surface = "#ffffff"
         
         # 主布局 - 与主窗口完全一致
         main_layout = QVBoxLayout(self)
@@ -336,15 +357,15 @@ class ParameterPanel(QWidget):
 
         # 内容容器 - 包含滚动区域和按钮，但不包含状态栏
         content_container = QFrame()
-        content_container.setStyleSheet("""
-            QFrame {
-                background-color: #f0f0f0;
+        content_container.setStyleSheet(f"""
+            QFrame {{
+                background-color: {bg_sec};
                 border: none;
                 border-bottom-left-radius: 0px;
                 border-bottom-right-radius: 0px;
                 border-top-left-radius: 0px;
                 border-top-right-radius: 0px;
-            }
+            }}
         """)
         content_layout = QVBoxLayout(content_container)
         content_layout.setContentsMargins(10, 5, 10, 8)  # 底部留一点间距给按钮
@@ -386,16 +407,23 @@ class ParameterPanel(QWidget):
         self.status_label.setObjectName("parameterStatusLabel")
         self.status_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.status_label.setMaximumHeight(50)  # 与主窗口一致
-        self.status_label.setStyleSheet("""
-            #parameterStatusLabel {
-                background-color: rgba(180, 180, 180, 180);
-                color: white;
+        # 使用主题颜色
+        if colors:
+            status_bg = colors.get("surface", "#b4b4b4")
+            status_text = colors.get("text_on_primary", "#ffffff")
+        else:
+            status_bg = "rgba(180, 180, 180, 180)"
+            status_text = "white"
+        self.status_label.setStyleSheet(f"""
+            #parameterStatusLabel {{
+                background-color: {status_bg};
+                color: {status_text};
                 padding: 8px;
                 border-radius: 5px;
                 font-size: 9pt;
                 border: none;
                 margin: 0px;
-            }
+            }}
         """)
         main_layout.addWidget(self.status_label)  # 直接添加到主布局
 
@@ -475,143 +503,179 @@ class ParameterPanel(QWidget):
             logger.debug(f"为控件 {name} ({type(widget).__name__}) 安装滚轮事件过滤器")
         
     def _apply_styles(self):
-        """应用与主程序一致的样式"""
-        self.setStyleSheet("""
-            ParameterPanel {
+        """应用与主程序一致的样式（支持主题系统）"""
+        # 尝试使用主题系统获取颜色
+        try:
+            from ui.theme import ThemeManager
+            theme_mode = ThemeManager.instance().get_current_mode()
+            from ui.theme.fluent_colors import FluentColors
+            colors = FluentColors.get_palette(theme_mode)
+            
+            bg = colors["background"]
+            surface = colors["surface"]
+            ctrl_bg = colors["control_background"]
+            text_p = colors["text_primary"]
+            text_s = colors["text_secondary"]
+            border_c = colors["border"]
+            primary_c = colors["primary"]
+            ctrl_hover = colors["control_hover"]
+            ctrl_pressed = colors["control_pressed"]
+            text_on_p = colors["text_on_primary"]
+            text_disabled = colors["text_disabled"]
+            bg_sec = colors["background_secondary"]
+        except Exception:
+            # 默认亮色主题
+            bg = "#f8f9fa"
+            surface = "#ffffff"
+            ctrl_bg = "#ffffff"
+            text_p = "#333333"
+            text_s = "#666666"
+            border_c = "#e0e0e0"
+            primary_c = "#007bff"
+            ctrl_hover = "#dddddd"
+            ctrl_pressed = "#cccccc"
+            text_on_p = "#ffffff"
+            text_disabled = "#aaaaaa"
+            bg_sec = "#f0f0f0"
+
+        self.setStyleSheet(f"""
+            ParameterPanel {{
                 background-color: transparent;
                 border: none;
                 font-size: 10pt;
-            }
+            }}
 
-            QFrame {
-                background-color: #f0f0f0;
+            QFrame {{
+                background-color: {surface};
                 border: none;
                 border-radius: 10px;
                 padding: 8px;
-            }
+            }}
 
             /* 标题栏特殊样式 */
-            QFrame[frameShape="1"] {
-                background-color: #F9F9F9;
+            QFrame[frameShape="1"] {{
+                background-color: {bg_sec};
                 border: none;
                 border-top-left-radius: 10px;
                 border-top-right-radius: 10px;
                 border-bottom-left-radius: 0px;
                 border-bottom-right-radius: 0px;
                 padding: 8px;
-            }
+            }}
 
-            QLabel {
-                color: #333333;
+            QLabel {{
+                color: {text_p};
                 font-family: "Microsoft YaHei";
                 font-size: 9pt;
-            }
+            }}
 
-            QPushButton {
+            QPushButton {{
                 padding: 8px 18px;
                 border: none;
                 border-radius: 4px;
-                background-color: #e8e8e8;
-                color: #333333;
+                background-color: {ctrl_bg};
+                color: {text_p};
                 font-family: "Microsoft YaHei";
                 min-height: 20px;
-            }
+            }}
 
-            QPushButton:hover {
-                background-color: #dddddd;
-            }
+            QPushButton:hover {{
+                background-color: {ctrl_hover};
+            }}
 
-            QPushButton:pressed {
-                background-color: #cccccc;
-            }
+            QPushButton:pressed {{
+                background-color: {ctrl_pressed};
+            }}
 
             /* 确保关闭按钮样式不被覆盖 */
-            QPushButton#closeButton {
+            QPushButton#closeButton {{
                 background-color: transparent;
                 border: none;
                 padding: 0px 10px;
                 margin: 0px 2px;
                 border-radius: 4px;
-                color: #555555;
+                color: {text_s};
                 font-family: "Segoe UI", "Arial";
                 font-size: 14px;
                 font-weight: normal;
                 min-width: 36px;
                 min-height: 30px;
-            }
-            QPushButton#closeButton:hover {
+            }}
+            QPushButton#closeButton:hover {{
                 background-color: #E81123;
                 color: white;
                 border: none;
                 border-radius: 4px;
                 padding: 0px 10px;
-            }
-            QPushButton#closeButton:pressed {
+            }}
+            QPushButton#closeButton:pressed {{
                 background-color: #B00000;
                 color: white;
                 border: none;
                 border-radius: 4px;
                 padding: 0px 10px;
-            }
+            }}
 
-            QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {
+            QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {{
                 padding: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid {border_c};
                 border-radius: 4px;
-                background-color: white;
+                background-color: {ctrl_bg};
+                color: {text_p};
                 min-height: 20px;
                 font-family: "Microsoft YaHei";
-            }
+            }}
 
             QSpinBox::up-button, QDoubleSpinBox::up-button,
-            QSpinBox::down-button, QDoubleSpinBox::down-button {
+            QSpinBox::down-button, QDoubleSpinBox::down-button {{
                 width: 0px;
                 height: 0px;
                 border: none;
                 background: transparent;
-            }
+            }}
 
-            QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus {
-                border-color: #007bff;
-            }
+            QLineEdit:focus, QComboBox:focus, QSpinBox:focus, QDoubleSpinBox:focus {{
+                border-color: {primary_c};
+            }}
 
-            QScrollArea {
-                border: 1px solid #e0e0e0;
+            QScrollArea {{
+                border: 1px solid {border_c};
                 border-radius: 4px;
-                background-color: #ffffff;
-            }
+                background-color: {surface};
+            }}
 
-            QCheckBox {
+            QCheckBox {{
                 font-family: "Microsoft YaHei";
                 spacing: 8px;
-                color: #333333;
-            }
+                color: {text_p};
+            }}
 
-            QGroupBox {
+            QGroupBox {{
                 font-weight: bold;
                 border: none;
                 border-radius: 8px;
                 margin-top: 15px;
                 padding: 15px;
-                background-color: #f8f8f8;
+                background-color: {bg_sec};
                 font-family: "Microsoft YaHei";
-            }
+            }}
 
-            QGroupBox::title {
+            QGroupBox::title {{
                 subcontrol-origin: margin;
                 subcontrol-position: top left;
                 padding: 0 8px;
                 left: 15px;
-                color: #555555;
-            }
+                color: {text_s};
+            }}
 
-            QPlainTextEdit {
+            QPlainTextEdit {{
                 padding: 8px;
-                border: 1px solid #e0e0e0;
+                border: 1px solid {border_c};
                 border-radius: 4px;
-                background-color: white;
+                background-color: {ctrl_bg};
+                color: {text_p};
                 font-family: "Microsoft YaHei";
-            }
+            }}
         """)
         
     def show_parameters(self, card_id: int, task_type: str, param_definitions: Dict[str, Dict[str, Any]],
@@ -970,13 +1034,26 @@ class ParameterPanel(QWidget):
 
     def _create_parameter_widgets(self):
         """根据参数定义创建控件"""
+        # 获取主题颜色
+        colors = self._get_theme_colors()
+        if colors:
+            text_secondary = colors.get("text_secondary", "#888888")
+            text_disabled = colors.get("text_disabled", "#aaaaaa")
+            bg_sec = colors.get("background_secondary", "#f0f0f0")
+            border_c = colors.get("border", "#cccccc")
+        else:
+            text_secondary = "#888888"
+            text_disabled = "#aaaaaa"
+            bg_sec = "#f0f0f0"
+            border_c = "#cccccc"
+
         if not self.param_definitions:
             no_params_label = QLabel("此任务没有可配置的参数")
             no_params_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            no_params_label.setStyleSheet("color: #888888; font-style: italic;")
+            no_params_label.setStyleSheet(f"color: {text_disabled}; font-style: italic;")
             self.content_layout.addWidget(no_params_label)
             return
-            
+        
         # 按顺序处理所有参数和分隔符
         for name, param_def in self.param_definitions.items():
             # 处理分隔符
@@ -985,7 +1062,7 @@ class ParameterPanel(QWidget):
                     separator_label = param_def.get('label', '')
                     if separator_label:
                         separator = QLabel(separator_label)
-                        separator.setStyleSheet("font-weight: bold; color: #666; margin-top: 10px; margin-bottom: 5px;")
+                        separator.setStyleSheet(f"font-weight: bold; color: {text_secondary}; margin-top: 10px; margin-bottom: 5px;")
                         self.content_layout.addWidget(separator)
                         self.conditional_widgets[name] = separator
                 continue
@@ -1570,9 +1647,9 @@ class ParameterPanel(QWidget):
                 """)
                 clear_button.clicked.connect(lambda: self._clear_and_update_display(text_edit))
 
-                # 统计信息标签
+                # 统计信息标签 - 使用主题颜色
                 count_label = QLabel()
-                count_label.setStyleSheet("color: #666; font-size: 9pt; margin-left: 8px;")
+                count_label.setStyleSheet(f"color: {text_secondary}; font-size: 9pt; margin-left: 8px;")
                 self._update_path_count_label(count_label, text_edit.toPlainText())
 
                 # 连接文本变化事件以更新统计
@@ -1606,15 +1683,15 @@ class ParameterPanel(QWidget):
                 if placeholder:
                     widget.setPlaceholderText(placeholder)
 
-                # 检查是否为只读
+                # 检查是否为只读 - 使用主题颜色
                 if param_def.get('readonly', False):
                     widget.setReadOnly(True)
-                    widget.setStyleSheet("""
-                        QLineEdit {
-                            background-color: #f0f0f0;
-                            color: #666666;
-                            border: 1px solid #cccccc;
-                        }
+                    widget.setStyleSheet(f"""
+                        QLineEdit {{
+                            background-color: {bg_sec};
+                            color: {text_secondary};
+                            border: 1px solid {border_c};
+                        }}
                     """)
 
         if widget and name not in self.widgets:
@@ -1682,11 +1759,11 @@ class ParameterPanel(QWidget):
         row_layout.addWidget(widget)
         layout.addWidget(row_widget)
 
-        # 添加帮助文本（如果有）
+        # 添加帮助文本（如果有）- 使用主题颜色
         help_text = param_def.get('help', '')
         if help_text:
             help_label = QLabel(help_text)
-            help_label.setStyleSheet("color: #666666; font-size: 11px; margin-left: 148px;")  # 调整左边距
+            help_label.setStyleSheet(f"color: {text_secondary}; font-size: 11px; margin-left: 148px;")  # 调整左边距
             help_label.setWordWrap(True)
             layout.addWidget(help_label)
 

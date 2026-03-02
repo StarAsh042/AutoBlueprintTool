@@ -1,4 +1,5 @@
 import math
+import logging
 from PySide6.QtWidgets import QGraphicsPathItem, QGraphicsLineItem, QGraphicsPolygonItem
 from PySide6.QtCore import Qt, QPointF
 # QPainter, QPolygonF, QBrush are no longer needed here
@@ -9,6 +10,8 @@ from typing import TYPE_CHECKING, Optional
 # Import Enum
 from enum import Enum
 
+logger = logging.getLogger(__name__)
+
 # 调试开关 - 设置为 False 可以禁用所有调试输出
 DEBUG_ENABLED = False
 
@@ -16,6 +19,13 @@ def debug_print(*args, **kwargs):
     """条件调试打印函数"""
     if DEBUG_ENABLED:
         print(*args, **kwargs)
+
+# Import theme system
+try:
+    from ui.theme import ThemeManager
+    THEME_AVAILABLE = True
+except ImportError:
+    THEME_AVAILABLE = False
 
 # Forward reference for type hinting
 if TYPE_CHECKING:
@@ -47,23 +57,42 @@ class ConnectionLine(QGraphicsPathItem):
 
     def set_line_color(self):
         """Sets the pen color based on the line type (less saturated)."""
-        # Define less saturated colors
-        # You can fine-tune these RGB values
         debug_print(f"  [CONN_DEBUG] set_line_color called for type: '{self.line_type}'")
-        color_sequential = QColor(60, 140, 210) # Softer blue
-        color_success = QColor(60, 160, 60)    # Softer green
-        color_failure = QColor(210, 80, 80)     # Softer red
         
-        color = color_sequential # Default
-        if self.line_type == ConnectionType.SUCCESS.value:
-            debug_print(f"    [CONN_DEBUG] Matched SUCCESS type.")
-            color = color_success
-        elif self.line_type == ConnectionType.FAILURE.value:
-            debug_print(f"    [CONN_DEBUG] Matched FAILURE type.")
-            color = color_failure
+        # 尝试从主题系统获取颜色
+        if THEME_AVAILABLE:
+            try:
+                theme_manager = ThemeManager.instance()
+                colors = theme_manager.get_palette()
+                
+                # 根据连接类型选择颜色
+                if self.line_type == ConnectionType.SUCCESS.value:
+                    color = QColor(colors["success"])
+                elif self.line_type == ConnectionType.FAILURE.value:
+                    color = QColor(colors["error"])
+                else:
+                    # 顺序连接使用主要强调色，但降低饱和度
+                    primary = QColor(colors["primary"])
+                    # 降低饱和度
+                    h, s, l, a = primary.getHslF()
+                    color = QColor.fromHslF(h, s * 0.7, l, a)
+            except Exception as e:
+                logger.debug(f"获取主题颜色失败，使用默认: {e}")
+                color = self._get_default_color()
+        else:
+            color = self._get_default_color()
         
         self.pen.setColor(color)
         self.setPen(self.pen) # Apply the updated pen to the item
+    
+    def _get_default_color(self) -> QColor:
+        """获取默认颜色"""
+        if self.line_type == ConnectionType.SUCCESS.value:
+            return QColor(60, 160, 60)    # 柔和绿色
+        elif self.line_type == ConnectionType.FAILURE.value:
+            return QColor(210, 80, 80)    # 柔和红色
+        else:
+            return QColor(60, 140, 210)   # 柔和蓝色
 
     def get_start_pos(self) -> QPointF:
         """Gets the connection point from the start item's corresponding output port."""
