@@ -498,7 +498,6 @@ class DynamicThreadPool:
                 self._pool.shutdown(wait=True)
                 self._pool = None
 
-
 class AsyncStreamProcessor:
     """异步流式处理器"""
 
@@ -593,7 +592,6 @@ class AsyncStreamProcessor:
                 yield result
             except asyncio.CancelledError:
                 break
-
 
 class AsyncPerformanceMonitor:
     """异步性能监控器"""
@@ -698,7 +696,6 @@ class AsyncPerformanceMonitor:
                 'history_count': len(self.performance_history)
             }
 
-
 class CommunicationHub:
     """通信中心"""
     
@@ -727,7 +724,6 @@ class CommunicationHub:
         """清理通信资源"""
         with self._lock:
             self._message_handlers.clear()
-
 
 class UnifiedMultiWindowExecutor(QObject):
     """统一多窗口执行器 - 合并所有优秀特性"""

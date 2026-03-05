@@ -458,10 +458,10 @@ class ParameterDialog(QDialog):
                     line_edit.setReadOnly(True)
                     # 使用主题颜色（如果可用）
                     try:
-                        from ui.theme import ThemeManager
-                        from ui.theme.fluent_colors import FluentColors
-                        theme_mode = ThemeManager.instance().get_current_mode()
-                        colors = FluentColors.get_palette(theme_mode)
+                        from ui.theme_manager import ThemeManager
+                        
+                        theme_mode = QApplication.instance().theme_manager.get_current_theme()
+                        colors = QApplication.instance().theme_manager.get_colors()
                         line_edit.setStyleSheet(f"""
                             QLineEdit {{
                                 background-color: {colors["background_secondary"]};
@@ -616,7 +616,6 @@ class ParameterDialog(QDialog):
                         button_group.addButton(radio_button)
                         if str(current_value) == value_key_val:
                             radio_button.setChecked(True)
-
 
                  widget = radio_button_container # This is the QWidget holding the QHBoxLayout of radio buttons
                  interactive_widget = button_group # Store the group to get the checked button
@@ -1369,10 +1368,9 @@ class ParameterDialog(QDialog):
         title_label = QLabel(title)
         # 使用主题颜色
         try:
-            from ui.theme import ThemeManager
-            theme_mode = ThemeManager.instance().get_current_mode()
-            from ui.theme.fluent_colors import FluentColors
-            colors = FluentColors.get_palette(theme_mode)
+            from ui.theme_manager import ThemeManager
+            theme_mode = QApplication.instance().theme_manager.get_current_theme()
+            QApplication.instance().theme_manager.get_colors()
             title_label.setStyleSheet(f"font-weight: bold; color: {colors['text_secondary']};")
         except Exception:
             title_label.setStyleSheet("font-weight: bold; color: #666666;")
@@ -1533,10 +1531,9 @@ class ParameterDialog(QDialog):
         """Applies a modern-looking stylesheet to the dialog."""
         # 尝试使用主题系统，如果失败则使用默认样式
         try:
-            from ui.theme import ThemeManager
-            theme_mode = ThemeManager.instance().get_current_mode()
-            from ui.theme.fluent_colors import FluentColors
-            colors = FluentColors.get_palette(theme_mode)
+            from ui.theme_manager import ThemeManager
+            theme_mode = QApplication.instance().theme_manager.get_current_theme()
+            QApplication.instance().theme_manager.get_colors()
             bg = colors["background"]
             ctrl_bg = colors["control_background"]
             text_p = colors["text_primary"]
@@ -2122,8 +2119,6 @@ class ParameterDialog(QDialog):
 
             print(f"搜索 模拟鼠标操作参数处理完成: 模式={updated_params.get('operation_mode')}, 坐标=({updated_params.get('coordinate_x')}, {updated_params.get('coordinate_y')})")
 
-
-
         print(f"搜索 get_parameters最终返回: {updated_params}")
         return updated_params
 
@@ -2389,7 +2384,6 @@ class ParameterDialog(QDialog):
                 self.resize(min_width, current_size.height())
         except Exception as e:
             logger.warning(f"延迟大小调整失败: {e}")
-
 
 if __name__ == '__main__':
     # Example Usage

@@ -100,6 +100,7 @@ from . import mouse_click_simulation # <<< ADDED: Import mouse_click_simulation 
 from . import find_color_task
 from . import ldplayer_app_manager # <<< ADDED: Import ldplayer_app_manager module
 from . import mumu_app_manager # <<< ADDED: Import mumu_app_manager module
+from . import multi_card_container # <<< ADDED: Import multi_card_container module
 
 # -----------------------------------------------------------
 
@@ -127,6 +128,7 @@ PRIMARY_TASK_MODULES = {
     # 应用管理
     "雷电应用管理": ldplayer_app_manager,
     "MuMu应用管理": mumu_app_manager,
+    "多卡片节点": multi_card_container,  # 新增：多卡片节点容器
 }
 
 # ==================================

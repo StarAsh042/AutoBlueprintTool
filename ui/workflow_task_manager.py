@@ -13,7 +13,6 @@ from .workflow_task import WorkflowTask
 
 logger = logging.getLogger(__name__)
 
-
 class WorkflowTaskManager(QObject):
     """工作流任务管理器"""
 

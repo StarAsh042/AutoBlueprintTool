@@ -22,7 +22,7 @@ from ui.parameter_dialog import ParameterDialog # <<< UNCOMMENTED Import
 
 # Import theme system
 try:
-    from ui.theme import ThemeManager, ThemeMode
+    from ui.theme_manager import ThemeManager, ThemeMode
     THEME_AVAILABLE = True
 except ImportError:
     THEME_AVAILABLE = False
@@ -63,14 +63,27 @@ class TaskCard(QGraphicsObject):
     
     def __init__(self, view: 'WorkflowView', x: float, y: float, task_type: str, card_id: int, task_module: Any, width: int = 180): 
         debug_print(f"--- [DEBUG] TaskCard __init__ START (Inherits QGraphicsObject) - ID: {card_id}, Type: '{task_type}' ---") # Updated log
-        self.initial_height = 50 # Simplified height
+        # --- MODIFIED: 卡片大小适配网格 (20px 网格) ---
+        # 宽度：180px = 9 个网格单位
+        # 高度：60px = 3 个网格单位
+        self.initial_height = 60  # 3 个网格单位
+        
+        # --- ADDED: 检测是否是容器卡片 ---
+        self.is_container = task_type == "多卡片节点"
+        if self.is_container:
+            # 容器卡片使用不同的尺寸
+            self._width = 400  # 容器更宽
+            self._height = 120  # 容器初始高度
+        else:
+            self._width = width
+            self._height = self.initial_height
+        # --------------------------------------
+        
         # --- ADJUSTED super().__init__() call for QGraphicsObject --- 
         # QGraphicsObject init doesn't take rect args directly like QGraphicsRectItem
         # We might need to set a parent QGraphicsItem if needed, but for now None is okay.
         super().__init__(None) # Call QGraphicsObject's init 
         # -------------------------------------------------------------
-        self._width = width # Store width for boundingRect
-        self._height = self.initial_height # Store height for boundingRect
         self.setPos(x, y) 
         
         self.view = view
@@ -84,6 +97,10 @@ class TaskCard(QGraphicsObject):
         self.parameters: Dict[str, Any] = {} 
         self.param_definitions: Dict[str, Dict[str, Any]] = {} 
         self.connections = [] # Keep connections list
+        self.child_cards: Dict[int, 'TaskCard'] = {}  # 存储子卡片 {card_id: TaskCard 对象}
+        self.parent_card: Optional['TaskCard'] = None  # 父容器卡片引用
+        self.container_margin = 20  # 容器内边距
+        self.child_card_spacing = 10  # 子卡片间距
         
         # --- ADDED: Flag for restricted output ports ---
         self.restricted_outputs = self._calculate_restricted_outputs()
@@ -96,11 +113,11 @@ class TaskCard(QGraphicsObject):
         # self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemClipsChildrenToShape, True) # Might not be needed or available
         self.setAcceptHoverEvents(True)
         
-        # --- UNCOMMENTED Style Settings --- 
-        self.border_radius = 8 
-        self.port_radius = 5.0 # Increased visual radius
-        self.port_border_width = 1.5 # Slightly thicker border
-        self.port_hit_radius = 12.0 # Keep hit radius large
+        # --- MODIFIED: ComfyUI风格端口设置 --- 
+        self.border_radius = 6  # 圆角稍小
+        self.port_radius = 3.5  # 缩小端口圆点
+        self.port_border_width = 1.0
+        self.port_hit_radius = 10.0  # 保持点击区域
         self.text_padding = 8 # Padding around the content area
         self.param_padding = 5 # Internal padding within the content layout
         self.default_pen = QPen(Qt.PenStyle.NoPen)
@@ -108,6 +125,7 @@ class TaskCard(QGraphicsObject):
         self.title_font.setBold(True) 
         self.param_font = QFont("Segoe UI", 8) 
         self.port_hover_color_boost = 40 # How much brighter/lighter on hover
+        # --- END MODIFIED ---
 
         # 初始化主题颜色（从主题系统获取或默认值）
         self._init_theme_colors()
@@ -116,18 +134,19 @@ class TaskCard(QGraphicsObject):
         if THEME_AVAILABLE:
             self._connect_theme_signals()
 
-        # Shadow Effect 
+        # Shadow Effect - 平面化设计，轻微阴影
         self.shadow = QGraphicsDropShadowEffect()
-        self.shadow.setBlurRadius(12) 
-        self.shadow.setColor(QColor(0, 0, 0, 40)) 
-        self.shadow.setOffset(2, 2) 
+        self.shadow.setBlurRadius(6)
+        self.shadow.setColor(QColor(0, 0, 0, 25))
+        self.shadow.setOffset(1, 1)
         self.setGraphicsEffect(self.shadow)
         self.shadow.setEnabled(True)
-        self.selection_shadow_blur = 18
-        self.selection_shadow_offset = 4
+        # 选中状态使用发光边框而非阴影放大
+        self.selection_glow_color = QColor(100, 160, 220)  # 柔和蓝光
+        self.selection_border_width = 2
         self.default_shadow_blur = self.shadow.blurRadius()
         self.default_shadow_offset = self.shadow.offset().x()
-        self.default_shadow_color = self.shadow.color()  # 保存默认阴影颜色 
+        self.default_shadow_color = self.shadow.color() 
 
         # Placeholder for execution state needed by paint logic
         self.execution_state = 'idle' 
@@ -182,11 +201,12 @@ class TaskCard(QGraphicsObject):
         """初始化主题颜色，从主题系统获取或设置默认值"""
         if THEME_AVAILABLE:
             try:
-                theme_manager = ThemeManager.instance()
+                theme_manager = QApplication.instance().theme_manager
                 colors = theme_manager.get_palette()
                 is_dark = theme_manager.is_dark_mode()
+                logger.debug(f"TaskCard 初始化主题：is_dark={is_dark}, current_theme={theme_manager.get_current_theme()}")
             except Exception as e:
-                logger.warning(f"获取主题颜色失败，使用默认值: {e}")
+                logger.warning(f"获取主题颜色失败，使用默认值：{e}")
                 colors = None
                 is_dark = False
         else:
@@ -224,16 +244,16 @@ class TaskCard(QGraphicsObject):
                     'failure': QColor(255, 200, 200)    # 浅红
                 }
             
-            # 状态边框
-            primary_color = QColor(colors["primary"])
-            success_color = QColor(colors["success"])
-            error_color = QColor(colors["error"])
+            # 状态边框 - 使用更淡的颜色
+            primary_color = QColor(colors.get('highlight', QColor(0, 120, 212)))
+            success_color = QColor(76, 175, 80)  # Material Green 500
+            error_color = QColor(244, 67, 54)    # Material Red 500
             
             self.state_border_pens = {
                 'idle': self.default_pen,
-                'executing': QPen(primary_color, 2),
-                'success': QPen(success_color, 2),
-                'failure': QPen(error_color, 2)
+                'executing': QPen(QColor(primary_color.red(), primary_color.green(), primary_color.blue(), 140), 2),  # Alpha 140/255
+                'success': QPen(QColor(success_color.red(), success_color.green(), success_color.blue(), 140), 2),   # Alpha 140/255
+                'failure': QPen(QColor(error_color.red(), error_color.green(), error_color.blue(), 140), 2)          # Alpha 140/255
             }
         else:
             # 使用默认颜色
@@ -258,15 +278,15 @@ class TaskCard(QGraphicsObject):
             
             self.state_border_pens = {
                 'idle': self.default_pen,
-                'executing': QPen(QColor(0, 100, 255), 2),
-                'success': QPen(QColor(0, 128, 0), 2),
-                'failure': QPen(QColor(200, 0, 0), 2)
+                'executing': QPen(QColor(33, 150, 243, 140), 2),   # Material Blue 500 with Alpha 140
+                'success': QPen(QColor(76, 175, 80, 140), 2),      # Material Green 500 with Alpha 140
+                'failure': QPen(QColor(244, 67, 54, 140), 2)       # Material Red 500 with Alpha 140
             }
     
     def _connect_theme_signals(self):
         """连接主题变化信号"""
         try:
-            theme_manager = ThemeManager.instance()
+            theme_manager = QApplication.instance().theme_manager
             theme_manager.theme_changed.connect(self._on_theme_changed)
         except Exception as e:
             logger.warning(f"连接主题信号失败: {e}")
@@ -298,25 +318,61 @@ class TaskCard(QGraphicsObject):
         path.addRoundedRect(rect, self.border_radius, self.border_radius) 
         
         # Draw Background
-        painter.setPen(Qt.PenStyle.NoPen) 
-        bg_color = self.state_colors.get(self.execution_state, self.card_color) 
-        painter.fillPath(path, QBrush(bg_color))
+        painter.setPen(Qt.PenStyle.NoPen)
         
-        # Draw Border (Use _current_border_pen)
-        # Determine border based on state and flashing
+        # 如果是子卡片，使用半透明背景
+        if self.parent_card:
+            # 子卡片背景稍暗一些，透明度降低
+            base_color = self.state_colors.get(self.execution_state, self.card_color)
+            bg_color = QColor(base_color)
+            bg_color.setAlpha(200)  # 降低透明度
+            painter.fillPath(path, QBrush(bg_color))
+        else:
+            bg_color = self.state_colors.get(self.execution_state, self.card_color) 
+            painter.fillPath(path, QBrush(bg_color))
+        
+        # --- MODIFIED: 绘制选中状态发光边框 ---
         effective_border_pen = self.default_pen
         if self._is_flashing:
-            # Use the toggled border pen if flashing
-            effective_border_pen = self._current_border_pen # This is toggled by the timer
+            effective_border_pen = self._current_border_pen
         else:
-            # Use the execution state border if not flashing
             effective_border_pen = self.state_border_pens.get(self.execution_state, self.default_pen)
 
-        if effective_border_pen != QPen(Qt.PenStyle.NoPen):
+        # 绘制选中状态发光边框
+        if self.isSelected():
+            # 外发光层 - 柔和渐变
+            for i in range(3, 0, -1):
+                glow_alpha = 40 - i * 10
+                glow_pen = QPen(QColor(self.selection_glow_color.red(),
+                                       self.selection_glow_color.green(),
+                                       self.selection_glow_color.blue(),
+                                       glow_alpha), self.selection_border_width + i * 2)
+                painter.setPen(glow_pen)
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                painter.drawPath(path)
+
+            # 主边框 - 清晰锐利
+            main_border_pen = QPen(self.selection_glow_color, self.selection_border_width)
+            painter.setPen(main_border_pen)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawPath(path)
+        elif effective_border_pen != QPen(Qt.PenStyle.NoPen):
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.setPen(effective_border_pen)
             painter.drawPath(path)
+        # --- END MODIFIED ---
             
+        # 如果是容器卡片，绘制容器标识（内边框）- 使用更淡的颜色
+        if self.is_container:
+            container_pen = QPen(QColor(100, 160, 220, 120), 2)  # 蓝色边框，Alpha 120/255
+            container_pen.setStyle(Qt.PenStyle.DashLine)  # 虚线
+            inner_rect = rect.adjusted(10, 10, -10, -10)
+            inner_path = QPainterPath()
+            inner_path.addRoundedRect(inner_rect, self.border_radius - 2, self.border_radius - 2)
+            painter.setPen(container_pen)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawPath(inner_path)
+        
         # --- Restore default pen for text --- 
         painter.setPen(QPen(self.title_color))
         # ------------------------------------
@@ -325,34 +381,39 @@ class TaskCard(QGraphicsObject):
         painter.setFont(self.title_font)
         painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, self.title)
         
-        # Draw Ports (Requires get_port_pos)
-        # Use a separate loop for inputs and outputs to apply hover effect correctly
+        # --- MODIFIED: ComfyUI风格端口绘制（实心圆点）---
         for side in ['left', 'right']:
             for port_type in PORT_TYPES:
-                # --- ADDED: Skip restricted output ports --- 
+                # 跳过受限的输出端口
                 if side == 'right' and self.restricted_outputs and port_type != PORT_TYPE_SEQUENTIAL:
-                    continue # Skip drawing success/failure outputs for restricted types
-                # -------------------------------------------
+                    continue
                 
                 base_color = self.port_colors.get(port_type, Qt.GlobalColor.gray)
-                # --- MODIFICATION: Use hovered_port state from hoverMoveEvent --- 
                 is_hovered = (self.hovered_port_side == ('input' if side == 'left' else 'output') and 
                               self.hovered_port_type == port_type)
-        
+                
+                # ComfyUI风格：实心圆点，悬停时放大并发光
                 if is_hovered:
-                    hover_color = base_color.lighter(100 + self.port_hover_color_boost)
-                    port_pen = QPen(hover_color, self.port_border_width + 1) # Even thicker pen
-                    port_brush = QBrush(hover_color.lighter(110)) # Fill with a slightly lighter shade
-                    radius = self.port_radius + 1 # Slightly larger radius
+                    hover_color = base_color.lighter(120)
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.setBrush(QBrush(hover_color))
+                    radius = self.port_radius + 2
+                    
+                    # 悬停发光效果
+                    glow_color = QColor(hover_color.red(), hover_color.green(), hover_color.blue(), 80)
+                    painter.setBrush(QBrush(glow_color))
+                    port_center = self.get_port_pos(side, port_type)
+                    painter.drawEllipse(port_center, radius + 3, radius + 3)
+                    painter.setBrush(QBrush(hover_color))
                 else:
-                    port_pen = QPen(base_color, self.port_border_width)
-                    port_brush = Qt.BrushStyle.NoBrush 
-                    radius = self.port_radius # <<< USE NORMAL RADIUS
-        
-                painter.setPen(port_pen)
-                painter.setBrush(port_brush)
-                port_center = self.get_port_pos(side, port_type) # Need get_port_pos back
+                    painter.setPen(Qt.PenStyle.NoPen)
+                    painter.setBrush(QBrush(base_color))
+                    radius = self.port_radius
+                
+                port_center = self.get_port_pos(side, port_type)
                 painter.drawEllipse(port_center, radius, radius)
+                # 去掉高光，简洁风格
+        # --- END MODIFIED ---
     # ------------------------------
 
     def mousePressEvent(self, event: QGraphicsSceneMouseEvent):
@@ -406,6 +467,23 @@ class TaskCard(QGraphicsObject):
 
         super().mousePressEvent(event) 
 
+    def mouseDoubleClickEvent(self, event: QGraphicsSceneMouseEvent):
+        """Handle double-click to open parameter settings dialog."""
+        debug_print(f"--- [DEBUG] TaskCard {self.card_id}: mouseDoubleClickEvent triggered ---")
+        
+        # 双击左键打开参数设置
+        if event.button() == Qt.MouseButton.LeftButton:
+            # 检查是否点击在端口上，如果是则不打开参数对话框
+            port_info = self.get_port_at(event.pos())
+            if not port_info:
+                debug_print(f"  [DBLCLICK_DEBUG] Opening parameter dialog for card {self.card_id}")
+                self.open_parameter_dialog()
+                event.accept()
+                return
+        
+        # 其他情况调用父类方法
+        super().mouseDoubleClickEvent(event)
+
     def get_port_pos(self, side: str, port_type: str = PORT_TYPE_SEQUENTIAL) -> QPointF:
         rect = self.boundingRect()
         center_y = rect.center().y()
@@ -419,7 +497,14 @@ class TaskCard(QGraphicsObject):
             y_offset = spacing # Failure port below center
         # ----------------------------------------------------------
         
-        x = rect.left() if side == 'left' else rect.right()
+        # --- MODIFIED: Move ports inside the card ---
+        port_offset_x = 6  # 端口距离边缘的内边距
+        if side == 'left':
+            x = rect.left() + port_offset_x
+        else:  # right
+            x = rect.right() - port_offset_x
+        # -------------------------------------------
+        
         final_y = center_y + y_offset
         return QPointF(x, final_y)
 
@@ -439,15 +524,27 @@ class TaskCard(QGraphicsObject):
 
         # Keep basic connection update logic
         if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
-            # --- ADDED: Dynamic Scene Rect Expansion ---
-            new_pos = value # QPointF representing the proposed new top-left position
+            # --- ADDED: Grid snapping ---
+            original_pos = value # QPointF representing the proposed new top-left position
+            new_pos = original_pos
+            
+            # Apply grid snapping if enabled
+            if self.view and hasattr(self.view, '_grid_snap_enabled') and self.view._grid_snap_enabled:
+                grid_size = self.view._grid_snap_size if hasattr(self.view, '_grid_snap_size') else 20
+                snapped_x = round(original_pos.x() / grid_size) * grid_size
+                snapped_y = round(original_pos.y() / grid_size) * grid_size
+                new_pos = QPointF(snapped_x, snapped_y)
+                # debug_print(f"  [GRID_SNAP] Card {self.card_id}: ({original_pos.x():.1f}, {original_pos.y():.1f}) -> ({snapped_x:.1f}, {snapped_y:.1f})")
+            # --- END GRID SNAPPING ---
+            
             # Calculate the card's bounding rect at the new position
             card_rect_at_new_pos = self.boundingRect().translated(new_pos)
 
             current_scene_rect = self.scene().sceneRect()
             # --- ADDED: More detailed logging BEFORE the check ---
             debug_print(f"--- [ITEM_CHANGE_DEBUG] Card ID: {self.card_id} ---")
-            debug_print(f"    New Proposed Pos (value): {new_pos}")
+            debug_print(f"    Original Pos (value): {original_pos}")
+            debug_print(f"    Snapped Pos: {new_pos}")
             debug_print(f"    Card Rect @ New Pos: L={card_rect_at_new_pos.left():.2f}, T={card_rect_at_new_pos.top():.2f}, R={card_rect_at_new_pos.right():.2f}, B={card_rect_at_new_pos.bottom():.2f}")
             debug_print(f"    Current Scene Rect:  L={current_scene_rect.left():.2f}, T={current_scene_rect.top():.2f}, R={current_scene_rect.right():.2f}, B={current_scene_rect.bottom():.2f}")
             # --- END ADDED ---
@@ -502,8 +599,18 @@ class TaskCard(QGraphicsObject):
             self.update_selection_effect(selected)
             # Allow the default behavior to proceed
             
-        # --- MODIFIED: Call super AFTER potential scene rect update ---
-        result = super().itemChange(change, value)
+        # --- MODIFIED: Call super with snapped position ---
+        # Use new_pos if we calculated it, otherwise use original value
+        if change == QGraphicsItem.GraphicsItemChange.ItemPositionChange and self.scene():
+            if self.view and hasattr(self.view, '_grid_snap_enabled') and self.view._grid_snap_enabled:
+                grid_size = self.view._grid_snap_size if hasattr(self.view, '_grid_snap_size') else 20
+                snapped_x = round(value.x() / grid_size) * grid_size
+                snapped_y = round(value.y() / grid_size) * grid_size
+                result = super().itemChange(change, QPointF(snapped_x, snapped_y))
+            else:
+                result = super().itemChange(change, value)
+        else:
+            result = super().itemChange(change, value)
         # --------------------------------------------------------------
 
         # --- MOVED Connection Update AFTER super().itemChange ---
@@ -602,16 +709,17 @@ class TaskCard(QGraphicsObject):
                     self.view.remove_connection(conn)
 
     def update_selection_effect(self, selected: bool):
-        """Updates the shadow effect based on selection state."""
+        """Updates the visual effect based on selection state - 使用发光边框替代阴影"""
+        # 选中状态使用发光边框（在paint中绘制），阴影保持平面化
         if selected:
-            self.shadow.setColor(self.selection_shadow_color)
-            self.shadow.setBlurRadius(self.selection_shadow_blur)
-            self.shadow.setOffset(self.selection_shadow_offset, self.selection_shadow_offset)
+            # 选中时轻微提升阴影
+            self.shadow.setBlurRadius(8)
+            self.shadow.setOffset(2, 2)
         else:
-            self.shadow.setColor(self.default_shadow_color)
+            # 未选中时恢复平面阴影
             self.shadow.setBlurRadius(self.default_shadow_blur)
             self.shadow.setOffset(self.default_shadow_offset, self.default_shadow_offset)
-        self.shadow.setEnabled(True) # Ensure it's enabled/updated
+        self.shadow.setEnabled(True)
 
     def set_display_id(self, sequence_id: Optional[int]): # Keep this uncommented
         """Sets the display ID shown on the card title."""
@@ -689,8 +797,75 @@ class TaskCard(QGraphicsObject):
         # 🔧 修复：发送信号给main_window的参数面板处理
         print(f"搜索 发送参数编辑请求信号: {self.card_id}")
         self.edit_settings_requested.emit(self.card_id)
-        # 注意：信号将由main_window._show_parameter_panel()处理，显示吸附在右侧的参数面板
 
+    def set_parent_card(self, parent: Optional['TaskCard']):
+        """设置父容器卡片"""
+        old_parent = self.parent_card
+        
+        # 从旧容器中移除
+        if old_parent and self.card_id in old_parent.child_cards:
+            del old_parent.child_cards[self.card_id]
+            old_parent.update_container_size()
+        
+        # 设置新父容器
+        self.parent_card = parent
+        
+        # 添加到新容器的子卡片列表
+        if parent:
+            parent.child_cards[self.card_id] = self
+            parent.update_container_size()
+            
+            # 设置子卡片的父级标志
+            self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, True)
+            self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemSendsGeometryChanges, True)
+            
+            # 将子卡片移动到容器内部
+            self._reposition_in_container()
+    
+    def _reposition_in_container(self):
+        """在容器内重新定位子卡片"""
+        if not self.parent_card:
+            return
+        
+        # 计算在容器内的位置
+        index = list(self.parent_card.child_cards.keys()).index(self.card_id)
+        container_rect = self.parent_card.boundingRect()
+        
+        # 计算 Y 位置（从上到下排列）
+        y_pos = self.parent_card.container_margin + index * (self.initial_height + self.parent_card.child_card_spacing)
+        x_pos = self.parent_card.container_margin
+        
+        # 平滑移动动画（可选）
+        self.setPos(x_pos, y_pos)
+    
+    def update_container_size(self):
+        """根据子卡片数量更新容器大小"""
+        if not self.is_container:
+            return
+        
+        child_count = len(self.child_cards)
+        if child_count == 0:
+            # 没有子卡片，使用最小高度
+            new_height = 120  # 容器最小高度
+        else:
+            # 计算需要的高度
+            total_height = (
+                self.container_margin * 2 +  # 上下边距
+                child_count * self.initial_height +  # 所有子卡片高度
+                (child_count - 1) * self.child_card_spacing  # 子卡片间距
+            )
+            new_height = max(120, total_height)  # 至少 120px
+        
+        # 更新高度
+        if new_height != self._height:
+            self._height = new_height
+            self.update()  # 重绘
+            
+            # 通知 view 更新连接
+            if hasattr(self, 'view') and self.view:
+                for conn in self.connections:
+                    conn.update_line()
+    
     def add_connection(self, connection): # Keep connection logic
         if connection not in self.connections:
             self.connections.append(connection)
@@ -797,10 +972,9 @@ class TaskCard(QGraphicsObject):
         menu = QMenu()
         # --- 使用主题系统设置菜单样式 ---
         try:
-            from ui.theme import ThemeManager
-            theme_mode = ThemeManager.instance().get_current_mode()
-            from ui.theme.fluent_colors import FluentColors
-            colors = FluentColors.get_palette(theme_mode)
+            from ui.theme_manager import ThemeManager
+            theme_mode = QApplication.instance().theme_manager.get_current_theme()
+            QApplication.instance().theme_manager.get_colors()
             menu.setStyleSheet(f"""
                 QMenu {{
                     background-color: {colors["surface"]};

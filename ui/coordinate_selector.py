@@ -111,9 +111,7 @@ class CoordinateSelectorOverlay(QWidget):
         self._setup_overlay_geometry()
         
         return True
-    
 
-    
     def _get_window_info(self, hwnd: int):
         """获取窗口信息（包括DPI处理）"""
         try:
@@ -344,10 +342,6 @@ class CoordinateSelectorOverlay(QWidget):
             relative_y = win32_screen_y - client_screen_pos[1]
             return QPoint(relative_x, relative_y)
 
-
-
-
-    
     def _is_point_in_target_window(self, qt_screen_pos: QPoint) -> bool:
         """检查点是否在目标窗口客户区内（使用Qt逻辑坐标）"""
         if not self.window_info:
@@ -760,12 +754,9 @@ class CoordinateSelectorWidget(QWidget):
             logger.error(f"获取绑定窗口句柄失败: {e}")
             return None
 
-
-
     def get_coordinate(self) -> Tuple[int, int]:
         """获取当前坐标"""
         return self.current_coordinate
-
 
 class MultiPointCoordinateSelectorOverlay(QWidget):
     """多点坐标选择器覆盖层 - 支持连续获取多个坐标点"""
@@ -1156,7 +1147,6 @@ class MultiPointCoordinateSelectorOverlay(QWidget):
             logger.warning("至少需要选择2个坐标点")
 
         self.close()
-
 
 class MultiPointCoordinateSelectorWidget(QWidget):
     """多点坐标选择器Widget - 支持连续获取多个坐标点"""

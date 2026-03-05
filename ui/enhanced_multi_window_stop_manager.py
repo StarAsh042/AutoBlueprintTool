@@ -23,7 +23,6 @@ except ImportError:
     OCR_STOP_MANAGER_AVAILABLE = False
     logger.warning("OCR停止管理器不可用")
 
-
 class StopState(Enum):
     """停止状态枚举"""
     RUNNING = "running"
@@ -32,7 +31,6 @@ class StopState(Enum):
     STOPPED = "stopped"
     FORCE_STOPPED = "force_stopped"
     ERROR = "error"
-
 
 @dataclass
 class StopRequest:
@@ -43,7 +41,6 @@ class StopRequest:
     force_after_timeout: bool = True
     callback: Optional[Callable] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
-
 
 @dataclass
 class WindowStopContext:
@@ -59,7 +56,6 @@ class WindowStopContext:
     stopped_at: Optional[float] = None
     error_message: Optional[str] = None
     cleanup_callbacks: List[Callable] = field(default_factory=list)
-
 
 class EnhancedStopSignalManager:
     """增强的停止信号管理器"""
@@ -124,7 +120,6 @@ class EnhancedStopSignalManager:
             self._window_stop_events.clear()
             self._stop_callbacks.clear()
 
-
 class GracefulThreadStopper:
     """优雅的线程停止器"""
     
@@ -181,7 +176,6 @@ class GracefulThreadStopper:
             logger.error(f"停止执行器失败: {e}")
             return False
 
-
 class ResourceCleanupManager:
     """资源清理管理器"""
     
@@ -229,7 +223,6 @@ class ResourceCleanupManager:
         except Exception as e:
             logger.error(f"清理函数执行失败: {e}")
             raise
-
 
 class EnhancedMultiWindowStopManager(QObject):
     """增强的多窗口停止管理器"""

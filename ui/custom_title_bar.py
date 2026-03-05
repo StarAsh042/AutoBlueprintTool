@@ -12,7 +12,7 @@ from PySide6.QtGui import QMouseEvent, QAction, QIcon, QFontMetrics
 
 # Import theme system
 try:
-    from ui.theme import ThemeManager, ThemeMode
+    from ui.theme_manager import ThemeManager, ThemeMode
     THEME_AVAILABLE = True
 except ImportError:
     THEME_AVAILABLE = False
@@ -145,14 +145,16 @@ class CustomTitleBar(QWidget):
             QPushButton#windowButton {
                 background-color: transparent;
                 border: none;
-                padding: 0px 10px;
+                padding: 0px 16px;
                 margin: 0px 2px;
-                border-radius: 4px;
+                border-radius: 6px;
                 color: #555555;
                 font-family: "Segoe UI Symbol", "Segoe UI Emoji", "Arial";
-                font-size: 14px;
-                min-width: 36px;
-                min-height: 30px;
+                font-size: 18px;
+                min-width: 54px;
+                min-height: 40px;
+                max-width: 54px;
+                max-height: 40px;
             }
             QPushButton#windowButton:hover {
                 background-color: #E8E8E8;
@@ -180,12 +182,12 @@ class CustomTitleBar(QWidget):
     def _connect_theme_signals(self):
         """连接主题变化信号"""
         try:
-            theme_manager = ThemeManager.instance()
+            theme_manager = QApplication.instance().theme_manager
             theme_manager.theme_changed.connect(self._on_theme_changed)
             # 立即应用当前主题
-            self._on_theme_changed(theme_manager.get_current_mode())
+            self._on_theme_changed(theme_manager.get_current_theme())
         except Exception as e:
-            logger.warning(f"连接主题信号失败: {e}")
+            logger.warning(f"连接主题信号失败：{e}")
 
     def _on_theme_changed(self, mode: ThemeMode):
         """

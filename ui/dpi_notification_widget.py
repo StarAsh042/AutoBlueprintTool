@@ -11,7 +11,6 @@ from PySide6.QtGui import QFont, QIcon
 
 logger = logging.getLogger(__name__)
 
-
 class WindowAdjustmentWorker(QThread):
     """窗口自动调整工作线程"""
 
@@ -82,7 +81,6 @@ class WindowAdjustmentWorker(QThread):
     def stop(self):
         """停止调整"""
         self._stop_requested = True
-
 
 class DPINotificationWidget(QWidget):
     """DPI变化通知组件"""
@@ -358,7 +356,6 @@ class DPINotificationWidget(QWidget):
         self.auto_hide_timer.stop()
         self.hide()
 
-
 class DPIChangeDetector:
     """DPI变化检测器"""
     
@@ -411,7 +408,6 @@ class DPIChangeDetector:
         self.last_dpi_records.clear()
         logger.debug("搜索 [DPI检测] 已清空DPI记录")
 
-
 # 全局DPI变化检测器
 _dpi_detector = None
 
@@ -421,7 +417,6 @@ def get_dpi_detector() -> DPIChangeDetector:
     if _dpi_detector is None:
         _dpi_detector = DPIChangeDetector()
     return _dpi_detector
-
 
 class DPICalibrationDialog(QMessageBox):
     """DPI校准对话框"""

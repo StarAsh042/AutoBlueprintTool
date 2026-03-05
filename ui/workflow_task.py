@@ -14,7 +14,6 @@ from task_workflow.executor import WorkflowExecutor
 
 logger = logging.getLogger(__name__)
 
-
 class WorkflowTask(QObject):
     """单个工作流任务"""
 

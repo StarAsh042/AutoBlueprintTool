@@ -18,7 +18,6 @@ from task_workflow.executor import WorkflowExecutor
 
 logger = logging.getLogger(__name__)
 
-
 class TaskState(Enum):
     """任务状态枚举"""
     IDLE = "等待开始"
@@ -468,9 +467,7 @@ class ControlCenterWindow(QMainWindow):
         # 窗口状态表格
         window_panel = self.create_window_panel()
         main_layout.addWidget(window_panel)
-        
 
-        
     def create_window_panel(self):
         """创建窗口状态面板"""
         group = QGroupBox("绑定窗口管理")
@@ -651,8 +648,6 @@ class ControlCenterWindow(QMainWindow):
         """设置定时器更新界面"""
         pass  # 暂时不需要定时器
 
-
-
     def assign_workflow_to_selected(self):
         """为选中的窗口分配工作流"""
         selected_rows = set()
@@ -664,8 +659,6 @@ class ControlCenterWindow(QMainWindow):
 
         row = list(selected_rows)[0]  # 取第一个选中的行
         self.assign_workflow_to_window(row)
-
-
 
     def start_all_tasks(self):
         """启动所有已分配工作流的窗口"""
@@ -787,9 +780,7 @@ class ControlCenterWindow(QMainWindow):
             except Exception as e:
                 QMessageBox.warning(self, "错误", f"分配工作流失败: {e}")
                 self.log_message(f"分配工作流失败: {e}")
-        
 
-        
     def start_window_task(self, row):
         """启动指定窗口的工作流"""
         window_info = self.sorted_windows[row]
@@ -964,9 +955,7 @@ class ControlCenterWindow(QMainWindow):
             if hwnd_item and hwnd_item.text() == window_id:
                 return row
         return -1
-        
 
-        
     def log_message(self, message):
         """添加日志消息到控制台"""
         import datetime

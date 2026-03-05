@@ -19,7 +19,6 @@ from PySide6.QtGui import QFont, QPalette, QColor, QPainter, QBrush, QPainterPat
 
 logger = logging.getLogger(__name__)
 
-
 class CloseButton(QPushButton):
     """自定义关闭按钮，与主窗口样式保持一致"""
 
@@ -43,7 +42,6 @@ class CloseButton(QPushButton):
         """重写鼠标释放事件"""
         super().mouseReleaseEvent(event)
 
-
 class ResponsiveButton(QPushButton):
     """响应式按钮，确保点击事件能正确处理"""
 
@@ -65,7 +63,6 @@ class ResponsiveButton(QPushButton):
             self.clicked.emit()
             event.accept()
         super().mousePressEvent(event)
-
 
 class InputWidgetEventFilter(QObject):
     """输入控件事件过滤器，确保输入控件能正常接收和处理事件"""
@@ -96,7 +93,6 @@ class InputWidgetEventFilter(QObject):
         # 默认不拦截任何事件
         return False
 
-
 class WheelEventFilter(QObject):
     """滚轮事件过滤器，禁用所有控件的滚轮事件"""
 
@@ -112,7 +108,6 @@ class WheelEventFilter(QObject):
             return True  # 表示事件已处理
 
         return super().eventFilter(obj, event)
-
 
 class CheckboxEventFilter(QObject):
     """复选框事件过滤器，确保点击事件能正确处理"""
@@ -143,7 +138,6 @@ class CheckboxEventFilter(QObject):
                 return True
 
         return super().eventFilter(obj, event)
-
 
 class ParameterPanel(QWidget):
     """参数设置面板 - 独立的小窗口吸附在主窗口右侧"""
@@ -261,8 +255,6 @@ class ParameterPanel(QWidget):
         # 其他情况传递给父类
         super().mousePressEvent(event)
 
-
-
     def mouseMoveEvent(self, event):
         """鼠标移动事件处理 - 参考主窗口拖拽实现，同时移动主窗口"""
         if self._mouse_pressed and event.buttons() == Qt.MouseButton.LeftButton:
@@ -307,24 +299,21 @@ class ParameterPanel(QWidget):
     def _get_theme_colors(self):
         """获取主题颜色"""
         try:
-            from ui.theme import ThemeManager
-            theme_mode = ThemeManager.instance().get_current_mode()
-            from ui.theme.fluent_colors import FluentColors
-            return FluentColors.get_palette(theme_mode)
+            return QApplication.instance().theme_manager.get_colors()
         except Exception:
             return None
 
     def _setup_ui(self):
-        """设置UI布局"""
+        """设置 UI 布局"""
         self.setFixedWidth(480)  # 增加宽度以容纳更长的输入框
         self.setMinimumHeight(400)
-        
+            
         # 获取主题颜色
         colors = self._get_theme_colors()
         if colors:
-            bg_sec = colors.get("background_secondary", "#f0f0f0")
-            text_on_primary = colors.get("text_on_primary", "#ffffff")
-            surface = colors.get("surface", "#ffffff")
+            bg_sec = colors.get("alternate_base", "#f0f0f0")
+            text_on_primary = colors.get("highlighted_text", "#ffffff")
+            surface = colors.get("base", "#ffffff")
         else:
             bg_sec = "#f0f0f0"
             text_on_primary = "#ffffff"
@@ -409,8 +398,8 @@ class ParameterPanel(QWidget):
         self.status_label.setMaximumHeight(50)  # 与主窗口一致
         # 使用主题颜色
         if colors:
-            status_bg = colors.get("surface", "#b4b4b4")
-            status_text = colors.get("text_on_primary", "#ffffff")
+            status_bg = colors.get("base", "#b4b4b4")
+            status_text = colors.get("highlighted_text", "#ffffff")
         else:
             status_bg = "rgba(180, 180, 180, 180)"
             status_text = "white"
@@ -506,23 +495,20 @@ class ParameterPanel(QWidget):
         """应用与主程序一致的样式（支持主题系统）"""
         # 尝试使用主题系统获取颜色
         try:
-            from ui.theme import ThemeManager
-            theme_mode = ThemeManager.instance().get_current_mode()
-            from ui.theme.fluent_colors import FluentColors
-            colors = FluentColors.get_palette(theme_mode)
+            colors = QApplication.instance().theme_manager.get_colors()
             
-            bg = colors["background"]
-            surface = colors["surface"]
-            ctrl_bg = colors["control_background"]
-            text_p = colors["text_primary"]
-            text_s = colors["text_secondary"]
-            border_c = colors["border"]
-            primary_c = colors["primary"]
-            ctrl_hover = colors["control_hover"]
-            ctrl_pressed = colors["control_pressed"]
-            text_on_p = colors["text_on_primary"]
-            text_disabled = colors["text_disabled"]
-            bg_sec = colors["background_secondary"]
+            bg = colors.get('window', QColor(245, 245, 245)).name()
+            surface = colors.get('base', QColor(255, 255, 255)).name()
+            ctrl_bg = colors.get('base', QColor(255, 255, 255)).name()
+            text_p = colors.get('text', QColor(0, 0, 0)).name()
+            text_s = colors.get('window_text', QColor(102, 102, 102)).name()
+            border_c = '#d0d0d0'
+            primary_c = colors.get('highlight', QColor(0, 120, 212)).name()
+            ctrl_hover = '#e8e8e8'
+            ctrl_pressed = '#d8d8d8'
+            text_on_p = colors.get('highlighted_text', QColor(255, 255, 255)).name()
+            text_disabled = '#999999'
+            bg_sec = colors.get('alternate_base', QColor(240, 240, 240)).name()
         except Exception:
             # 默认亮色主题
             bg = "#f8f9fa"
@@ -740,20 +726,6 @@ class ParameterPanel(QWidget):
         # from PySide6.QtCore import QTimer
         # QTimer.singleShot(100, self._force_enable_input_widgets)
         # QTimer.singleShot(200, self._debug_input_widgets)
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     def _restore_app_selection_only(self, saved_app):
         """只恢复应用选择，不刷新应用列表"""
@@ -912,19 +884,34 @@ class ParameterPanel(QWidget):
     def paintEvent(self, event):
         """绘制圆角背景"""
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
+        # 启用抗锯齿渲染（使用兼容的 API）
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        
         # 创建圆角矩形路径
         path = QPainterPath()
         rect = self.rect()
         radius = 12  # 圆角半径
         path.addRoundedRect(rect, radius, radius)
-
-        # 绘制背景
-        painter.fillPath(path, QBrush(QColor(255, 255, 255, 250)))  # 白色背景，略透明
-
-        # 绘制边框
-        painter.setPen(QColor(224, 224, 224))  # #e0e0e0
+        
+        # 使用主题颜色填充背景
+        try:
+            from ui.theme_manager import ThemeManager
+            colors = QApplication.instance().theme_manager.get_palette()
+            bg_color = QColor(colors.get("background_secondary", "#f0f0f0"))
+        except Exception:
+            bg_color = QColor(255, 255, 255, 250)  # 回退到白色半透明
+        
+        painter.fillPath(path, QBrush(bg_color))
+        
+        # 绘制边框（使用主题颜色）
+        try:
+            border_color = QColor(colors.get("border", "#e0e0e0"))
+        except Exception:
+            border_color = QColor(224, 224, 224)  # 回退到#e0e0e0
+        
+        pen = QPen(border_color, 1)
+        painter.setPen(pen)
         painter.drawPath(path)
         
     def _clear_content(self):
@@ -1084,16 +1071,25 @@ class ParameterPanel(QWidget):
         # 添加弹性空间
         self.content_layout.addStretch()
 
-
-
     def _create_single_parameter_widget(self, name: str, param_def: Dict[str, Any], layout: QVBoxLayout):
         """创建单个参数的控件"""
+        # 获取主题颜色
+        colors = self._get_theme_colors()
+        if colors:
+            text_secondary = colors.get("text_secondary", "#888888")
+            text_disabled = colors.get("text_disabled", "#aaaaaa")
+            bg_sec = colors.get("background_secondary", "#f0f0f0")
+            border_c = colors.get("border", "#cccccc")
+        else:
+            text_secondary = "#888888"
+            text_disabled = "#aaaaaa"
+            bg_sec = "#f0f0f0"
+            border_c = "#cccccc"
+        
         param_type = param_def.get('type', 'text')
         label_text = param_def.get('label', name)
         current_value = self.current_parameters.get(name, param_def.get('default'))
         widget_hint = param_def.get('widget_hint', '')
-
-
 
         # 创建行容器
         row_widget = QWidget()
@@ -1309,8 +1305,6 @@ class ParameterPanel(QWidget):
             if not hasattr(self, '_event_filters'):
                 self._event_filters = []
             self._event_filters.append(event_filter)
-
-
 
         elif param_type == 'int' or param_type == 'integer':
             # 使用QLineEdit替代QSpinBox，避免SpinBox的复杂问题
@@ -2250,7 +2244,6 @@ class ParameterPanel(QWidget):
                     if hasattr(widget, 'setText'):
                         widget.setText(f"{x},{y}")
 
-
                 # 更新current_parameters
                 self.current_parameters['scroll_start_position'] = f"{x},{y}"
 
@@ -2266,7 +2259,6 @@ class ParameterPanel(QWidget):
                     if hasattr(widget, 'setText'):
                         widget.setText(f"{x},{y}")
 
-
                 # 更新current_parameters
                 self.current_parameters['drag_start_position'] = f"{x},{y}"
 
@@ -2281,7 +2273,6 @@ class ParameterPanel(QWidget):
                     widget = self.widgets[param_name]
                     if hasattr(widget, 'setText'):
                         widget.setText(f"{x},{y}")
-
 
                 # 自动应用参数
                 self._apply_parameters()
@@ -2324,7 +2315,6 @@ class ParameterPanel(QWidget):
                 # 设置目标窗口
                 if hasattr(self.motion_region_selector, 'set_target_window'):
                     self.motion_region_selector.set_target_window(target_window_title)
-
 
             # 设置初始区域（如果有的话）
             initial_x = self.current_parameters.get('minimap_x', 1150)
@@ -2836,8 +2826,6 @@ class ParameterPanel(QWidget):
         logger.info(f"应用参数更改: {new_parameters}")
         logger.info(f"发出参数更改信号: card_id={self.current_card_id}")
         self.parameters_changed.emit(self.current_card_id, new_parameters)
-
-
 
     def _reset_parameters(self):
         """重置参数到默认值"""
@@ -3604,8 +3592,6 @@ class ParameterPanel(QWidget):
             import traceback
             logger.error(f"错误详情: {traceback.format_exc()}")
             return None, None
-
-
 
     def _get_target_hwnd(self) -> Optional[int]:
         """获取目标窗口句柄 - 直接使用全局设置中的绑定窗口"""

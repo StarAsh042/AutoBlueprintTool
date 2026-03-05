@@ -250,12 +250,144 @@ def get_params_definition() -> Dict[str, Dict[str, Any]]:
             "tooltip": "客户区坐标相对于窗口内容区域，屏幕坐标相对于整个屏幕",
             "condition": {"param": "operation_mode", "value": "坐标点击"}
         },
-        "disable_random_offset": {
-            "label": "禁止随机偏移",
+        # 点击位置相关参数
+        "---click_position_params---": {
+            "type": "separator",
+            "label": "点击位置设置",
+            "condition": {"param": "operation_mode", "value": "坐标点击"}
+        },
+        "click_position_mode": {
+            "label": "点击位置",
+            "type": "select",
+            "options": ["精准坐标", "固定偏移", "随机偏移"],
+            "default": "精准坐标",
+            "tooltip": "精准坐标：使用设定的精确坐标；固定偏移：在坐标基础上加上固定偏移量；随机偏移：在坐标基础上随机偏移一定范围",
+            "condition": {"param": "operation_mode", "value": "坐标点击"}
+        },
+        "fixed_offset_x": {
+            "label": "固定 X 偏移 (像素)",
+            "type": "int",
+            "default": 0,
+            "min": -1000,
+            "max": 1000,
+            "tooltip": "相对于设定坐标的 X 轴固定偏移量",
+            "condition": [
+                {"param": "operation_mode", "value": "坐标点击"},
+                {"param": "click_position_mode", "value": "固定偏移"}
+            ]
+        },
+        "fixed_offset_y": {
+            "label": "固定 Y 偏移 (像素)",
+            "type": "int",
+            "default": 0,
+            "min": -1000,
+            "max": 1000,
+            "tooltip": "相对于设定坐标的 Y 轴固定偏移量",
+            "condition": [
+                {"param": "operation_mode", "value": "坐标点击"},
+                {"param": "click_position_mode", "value": "固定偏移"}
+            ]
+        },
+        "random_offset_x": {
+            "label": "随机 X 偏移范围 (像素)",
+            "type": "int",
+            "default": 5,
+            "min": 0,
+            "max": 100,
+            "tooltip": "X 轴随机偏移的范围（±像素值）",
+            "condition": [
+                {"param": "operation_mode", "value": "坐标点击"},
+                {"param": "click_position_mode", "value": "随机偏移"}
+            ]
+        },
+        "random_offset_y": {
+            "label": "随机 Y 偏移范围 (像素)",
+            "type": "int",
+            "default": 5,
+            "min": 0,
+            "max": 100,
+            "tooltip": "Y 轴随机偏移的范围（±像素值）",
+            "condition": [
+                {"param": "operation_mode", "value": "坐标点击"},
+                {"param": "click_position_mode", "value": "随机偏移"}
+            ]
+        },
+        # 点击动作相关参数
+        "---click_action_params---": {
+            "type": "separator",
+            "label": "点击动作设置",
+            "condition": {"param": "operation_mode", "value": "坐标点击"}
+        },
+        "click_action": {
+            "label": "点击动作",
+            "type": "select",
+            "options": ["完整点击", "双击", "仅按下", "仅松开"],
+            "default": "完整点击",
+            "tooltip": "完整点击：按下并释放；双击：连续点击两次；仅按下：只按下按键；仅松开：只释放按键",
+            "condition": {"param": "operation_mode", "value": "坐标点击"}
+        },
+        "auto_release": {
+            "label": "自动释放",
             "type": "bool",
-            "default": False,
-            "tooltip": "勾选后使用绝对坐标，不使用±5随机偏移",
-            "condition": {"param": "operation_mode", "value": ["坐标点击", "文字点击"]}
+            "default": True,
+            "tooltip": "启用：在按下后自动释放按键；禁用：需要手动释放（仅按下模式有效）",
+            "condition": [
+                {"param": "operation_mode", "value": "坐标点击"},
+                {"param": "click_action", "value": "仅按下"}
+            ]
+        },
+        "duration_mode": {
+            "label": "持续时间模式",
+            "type": "select",
+            "options": ["固定持续时间", "随机持续时间"],
+            "default": "固定持续时间",
+            "tooltip": "固定持续时间：使用设定的固定时长；随机持续时间：在设定范围内随机选择时长",
+            "condition": [
+                {"param": "operation_mode", "value": "坐标点击"},
+                {"param": "click_action", "value": "仅按下"}
+            ]
+        },
+        "press_duration": {
+            "label": "按下持续时间 (秒)",
+            "type": "float",
+            "default": 1.0,
+            "min": 0.1,
+            "max": 10.0,
+            "decimals": 1,
+            "tooltip": "按键按下的持续时间（秒）",
+            "condition": [
+                {"param": "operation_mode", "value": "坐标点击"},
+                {"param": "click_action", "value": "仅按下"},
+                {"param": "duration_mode", "value": "固定持续时间"}
+            ]
+        },
+        "min_duration": {
+            "label": "最小持续时间 (秒)",
+            "type": "float",
+            "default": 0.5,
+            "min": 0.1,
+            "max": 10.0,
+            "decimals": 1,
+            "tooltip": "随机持续时间的最小值（秒）",
+            "condition": [
+                {"param": "operation_mode", "value": "坐标点击"},
+                {"param": "click_action", "value": "仅按下"},
+                {"param": "duration_mode", "value": "随机持续时间"}
+            ]
+        },
+        "max_duration": {
+            "label": "最大持续时间 (秒)",
+            "type": "float",
+            "default": 2.0,
+            "min": 0.1,
+            "max": 10.0,
+            "decimals": 1,
+            "tooltip": "随机持续时间的最大值（秒）",
+            "condition": [
+                {"param": "operation_mode", "value": "坐标点击"},
+                {"param": "click_action", "value": "仅按下"},
+                {"param": "duration_mode", "value": "随机持续时间"}
+            ]
         },
 
         # 鼠标滚轮相关参数

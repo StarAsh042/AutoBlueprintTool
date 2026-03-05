@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__) # <<< ADDED: Define module-level logger
 
 # Import theme system
 try:
-    from ui.theme import ThemeManager, ThemeMode
+    from ui.theme_manager import ThemeManager, ThemeMode
     THEME_AVAILABLE = True
 except ImportError:
     THEME_AVAILABLE = False
@@ -44,6 +44,10 @@ from .select_task_dialog import SelectTaskDialog
 FIT_VIEW_PADDING = 50
 # Define snapping distance for connection lines
 SNAP_DISTANCE = 15
+# Grid settings for background and snapping
+GRID_SIZE = 20
+GRID_COLOR_LIGHT = "#D0D0D0"  # 柔和的浅灰色网格
+GRID_COLOR_DARK = "#353535"    # 柔和的深色网格
 
 class WorkflowView(QGraphicsView):
     """The main view widget displaying the workflow scene with task cards."""
@@ -67,18 +71,21 @@ class WorkflowView(QGraphicsView):
         # -----------------------------------------------------
         self.setScene(self.scene)
         
-        # --- MODIFIED: Change Scroll Bar Policy ---
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        # --- MODIFIED: Change Scroll Bar Policy to always hide scrollbars ---
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         # ---------------------------------------
 
+        # 设置鼠标样式为指针
+        self.setCursor(Qt.CursorShape.ArrowCursor)
+        
         # Render hints
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
         self.setRenderHint(QPainter.RenderHint.TextAntialiasing)
         self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
-        # Set default drag mode to ScrollHandDrag for panning
-        self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        # Set default drag mode to NoDrag - 左键只操作节点，右键和空格 + 左键拖拽画布
+        self.setDragMode(QGraphicsView.DragMode.NoDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
         self.setInteractive(True)
@@ -124,6 +131,10 @@ class WorkflowView(QGraphicsView):
         self._dragging_item = None
         self._line_start_item: Optional[TaskCard] = None
         self._connection_type_to_draw: ConnectionType = ConnectionType.SUCCESS
+        
+        # Grid snapping settings
+        self._grid_snap_enabled = True
+        self._grid_snap_size = GRID_SIZE
 
         # --- Log initialization --- 
         log_func = logging.info if logging.getLogger().hasHandlers() else print
@@ -156,6 +167,16 @@ class WorkflowView(QGraphicsView):
 
         # <<< ADDED: Track flashing cards >>>
         self.flashing_card_ids = set()
+        # <<< END ADDED >>>
+
+        # <<< ADDED: Track space key state for canvas panning >>>
+        self._space_pressed = False  # 标志：空格键是否按下
+        # <<< END ADDED >>>
+
+        # <<< ADDED: Track right mouse button state for canvas panning >>>
+        self._right_mouse_pressed = False  # 标志：右键是否按下
+        self._right_press_pos = None  # 右键按下的位置
+        self._is_right_pan = False  # 标志：是否正在右键平移
         # <<< END ADDED >>>
 
     def _is_workflow_running(self) -> bool:
@@ -666,7 +687,15 @@ class WorkflowView(QGraphicsView):
 
             # 检查连接是否还在连接列表中
             if connection not in self.connections:
-                logger.debug("连接已不在连接列表中，可能已被删除")
+                logger.debug(f"连接已不在连接列表中，可能已被删除。连接：{connection}, 列表：{self.connections}")
+                # 尝试从场景中移除（即使不在列表中）
+                if hasattr(connection, 'scene') and connection.scene() == self.scene:
+                    logger.info(f"连接虽不在列表中但仍在场景中，尝试移除：{connection}")
+                    try:
+                        self.scene.removeItem(connection)
+                        logger.info(f"成功从场景移除连接：{connection}")
+                    except Exception as e:
+                        logger.warning(f"从场景移除连接失败：{e}")
                 return
 
             # 保存连接状态用于撤销（除非正在删除卡片、加载工作流、更新序列显示、执行撤销操作或修改连线）
@@ -698,7 +727,7 @@ class WorkflowView(QGraphicsView):
         if isinstance(connection, ConnectionLine) and hasattr(connection, 'line_type') and connection.line_type == 'sequential':
              was_sequential = True
 
-        # --- MODIFIED: Clear jump parameters on connection deletion ---
+        # --- MODIFIED: Clear parameters on connection deletion ---
         if isinstance(connection, ConnectionLine) and \
            hasattr(connection, 'start_item') and isinstance(connection.start_item, TaskCard) and \
            hasattr(connection.start_item, 'parameters'):
@@ -714,6 +743,9 @@ class WorkflowView(QGraphicsView):
             elif line_type == ConnectionType.FAILURE.value:
                 param_to_clear = 'failure_jump_target_id'
                 # action_param_name = 'on_failure'
+            elif line_type == 'sequential':
+                # Sequential connection: clear next_step_card_id
+                param_to_clear = 'next_step_card_id'
 
             parameter_actually_changed = False
             if param_to_clear and param_to_clear in start_card.parameters:
@@ -722,7 +754,7 @@ class WorkflowView(QGraphicsView):
                     start_card.parameters[param_to_clear] = None
                     parameter_actually_changed = True
 
-                    # 同时重置相关的动作参数
+                    # 同时重置相关的动作参数（仅 jump 连接需要）
                     if line_type == ConnectionType.SUCCESS.value and start_card.parameters.get('on_success') == '跳转到步骤':
                         start_card.parameters['on_success'] = '执行下一步'
                         logger.info(f"  [SYNC] Reset on_success action to '执行下一步' for card {start_card.card_id}")
@@ -807,7 +839,7 @@ class WorkflowView(QGraphicsView):
         """初始化主题颜色"""
         if THEME_AVAILABLE:
             try:
-                theme_manager = ThemeManager.instance()
+                theme_manager = QApplication.instance().theme_manager
                 colors = theme_manager.get_palette()
             except Exception as e:
                 logger.warning(f"获取主题颜色失败: {e}")
@@ -829,7 +861,7 @@ class WorkflowView(QGraphicsView):
     def _connect_theme_signals(self):
         """连接主题变化信号"""
         try:
-            theme_manager = ThemeManager.instance()
+            theme_manager = QApplication.instance().theme_manager
             theme_manager.theme_changed.connect(self._on_theme_changed)
         except Exception as e:
             logger.warning(f"连接主题信号失败: {e}")
@@ -846,6 +878,44 @@ class WorkflowView(QGraphicsView):
         # 兼容处理：mode 可能是 ThemeMode 枚举或字符串
         mode_str = mode.value if hasattr(mode, 'value') else str(mode)
         logger.debug(f"WorkflowView 主题更新为: {mode_str}")
+
+    def drawBackground(self, painter: QPainter, rect: QRectF):
+        """绘制网格背景"""
+        super().drawBackground(painter, rect)
+        
+        # 获取主题颜色
+        grid_color = QColor(GRID_COLOR_LIGHT)
+        if THEME_AVAILABLE:
+            try:
+                theme_manager = QApplication.instance().theme_manager
+                if theme_manager.is_dark_mode():
+                    grid_color = QColor(GRID_COLOR_DARK)
+                else:
+                    grid_color = QColor(GRID_COLOR_LIGHT)
+            except:
+                pass
+        
+        # 设置画笔
+        pen = QPen(grid_color, 0.5)
+        painter.setPen(pen)
+        
+        # 计算需要绘制的网格范围
+        left = int(rect.left()) - int(rect.left()) % GRID_SIZE
+        top = int(rect.top()) - int(rect.top()) % GRID_SIZE
+        right = int(rect.right())
+        bottom = int(rect.bottom())
+        
+        # 绘制垂直线
+        x = left
+        while x <= right:
+            painter.drawLine(x, rect.top(), x, rect.bottom())
+            x += GRID_SIZE
+        
+        # 绘制水平线
+        y = top
+        while y <= bottom:
+            painter.drawLine(rect.left(), y, rect.right(), y)
+            y += GRID_SIZE
 
     def wheelEvent(self, event: QWheelEvent):
         """Handles mouse wheel events for zooming."""
@@ -1091,13 +1161,13 @@ class WorkflowView(QGraphicsView):
         """Override mouse press to handle multi-selection, background clicks, and drag operations."""
         item_at_pos = self.itemAt(event.pos())
         modifiers = event.modifiers()
-
+    
         # Handle Ctrl+Left click for multi-selection
         if (event.button() == Qt.MouseButton.LeftButton and
             modifiers == Qt.KeyboardModifier.ControlModifier):
-
+    
             if isinstance(item_at_pos, TaskCard):
-                # Ctrl+点击卡片：切换选择状态
+                # Ctrl+ 点击卡片：切换选择状态
                 if item_at_pos.isSelected():
                     item_at_pos.setSelected(False)
                     debug_print(f"  [MULTI_SELECT] Ctrl+Click: Deselected card {item_at_pos.card_id}")
@@ -1107,46 +1177,52 @@ class WorkflowView(QGraphicsView):
                 event.accept()
                 return
             elif item_at_pos is None:
-                # Ctrl+拖拽背景：启用框选模式
+                # Ctrl+ 拖拽背景：启用框选模式
                 debug_print("  [MULTI_SELECT] Ctrl+Drag: Enabling rubber band selection")
                 self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
                 super().mousePressEvent(event)
                 return
-
+    
         # If clicking background (or non-card item) with left button, stop flashing
         if event.button() == Qt.MouseButton.LeftButton and item_at_pos is None:
              debug_print("  [DEBUG] WorkflowView: Background left-clicked. Stopping all flashing.")
              self._stop_all_flashing()
-
+    
              # 确保视图获得焦点，以便接收键盘事件
              if not self.hasFocus():
                  self.setFocus()
                  debug_print("  [FOCUS] Set focus to WorkflowView on background click")
-
-             # 如果不是Ctrl+拖拽，则清除所有选择并允许平移
-             if modifiers != Qt.KeyboardModifier.ControlModifier:
-                 self.scene.clearSelection()
-                 # Allow panning to start
-                 super().mousePressEvent(event)
-             return
-
-        # Handle right-click for context menu (ignores press)
-        if event.button() == Qt.MouseButton.RightButton:
-            self._last_right_click_view_pos_f = event.position()
-            debug_print("  [DEBUG] WorkflowView: Right mouse button pressed. Storing pos. NOT calling super() initially.")
+    
+             # 检查是否按住了空格键（通过标志位）
+             is_space_pressed = hasattr(self, '_space_pressed') and self._space_pressed
+             
+             # 如果不是 Ctrl+ 拖拽或空格 + 拖拽，则清除所有选择但不允许平移（左键只操作节点）
+        # 处理左键按下：启用画布拖拽模式（手掌工具）
+        if event.button() == Qt.MouseButton.LeftButton:
+            debug_print("  [DEBUG] WorkflowView: Left mouse button pressed. Enable panning mode.")
+            self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+            self._original_drag_mode = QGraphicsView.DragMode.NoDrag
+            # 设置手掌光标
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+            super().mousePressEvent(event)
             event.accept()
             return
-
-        # Handle left-click on a card (will emit card_clicked handled by _handle_card_clicked)
-        # or port drag (handled by TaskCard.mousePressEvent)
-        # Let the normal event propagation happen for items/drag
-        debug_print("  [DEBUG] WorkflowView: Left/Other mouse button pressed on item or starting drag. Calling super().")
-
+        
+        # 处理右键按下：仅用于上下文菜单
+        if event.button() == Qt.MouseButton.RightButton:
+            debug_print("  [DEBUG] WorkflowView: Right mouse button pressed for context menu.")
+            # 直接调用父类方法，让 Qt 处理右键菜单
+            super().mousePressEvent(event)
+            return
+    
+        # Handle other mouse button events
+        debug_print("  [DEBUG] WorkflowView: Other mouse button pressed. Calling super().")
+    
         # 确保视图获得焦点，以便接收键盘事件
         if not self.hasFocus():
             self.setFocus()
             debug_print("  [FOCUS] Set focus to WorkflowView on item click")
-
+    
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent):
@@ -1154,22 +1230,21 @@ class WorkflowView(QGraphicsView):
         if self.is_dragging_line:
             scene_pos = self.mapToScene(event.pos())
             self.update_drag_line(scene_pos)
-        else:
-            super().mouseMoveEvent(event)  # Handle panning or item dragging
+            event.accept()
+            return
+        
+        # 其他情况：处理连线拖拽或物品拖拽
+        super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
-        # --- SIMPLIFIED: Remove specific right-click handling and drag mode restore --- 
-        # if self._right_mouse_pressed and event.button() == Qt.MouseButton.RightButton:
-        #     debug_print("  [DEBUG] WorkflowView: Right mouse button released.") # DEBUG
-        #     # --- MODIFIED: Ensure restoring to ScrollHandDrag as a fallback ---
-        #     restore_mode = self._original_drag_mode if self._original_drag_mode is not None else QGraphicsView.DragMode.ScrollHandDrag
-        #     self.setDragMode(restore_mode)
-        #     debug_print(f"  [DEBUG] WorkflowView: Restored drag mode to {restore_mode}.") # DEBUG
-        #     # ----------------------------------------------------------------
-        #     self._right_mouse_pressed = False
-        #     # Call super() to ensure base class release logic runs
-        #     super().mouseReleaseEvent(event)
-        #     debug_print("  [DEBUG] WorkflowView: Called super().mouseReleaseEvent for right-click.") # DEBUG
+        """Handle mouse release events for line dropping and view panning."""
+        # 处理左键释放：恢复默认光标
+        if event.button() == Qt.MouseButton.LeftButton:
+            if self.dragMode() == QGraphicsView.DragMode.ScrollHandDrag:
+                debug_print("  [DEBUG] WorkflowView: Left pan ended. Restore cursor and drag mode.")
+                self.setDragMode(QGraphicsView.DragMode.NoDrag)
+                self.setCursor(Qt.CursorShape.ArrowCursor)  # 恢复箭头光标
+        
         if self.is_dragging_line:
             scene_pos = self.mapToScene(event.pos())
             self.end_drag_line(scene_pos)
@@ -1177,13 +1252,61 @@ class WorkflowView(QGraphicsView):
             # Handle normal release (e.g., end panning or rubber band selection)
             super().mouseReleaseEvent(event)
 
-            # 如果当前是框选模式，释放后恢复到平移模式
+            # 检测是否将卡片拖拽到容器内释放
+            self._handle_card_drop_to_container(event.pos())
+
+            # 如果当前是框选模式，释放后恢复到 NoDrag 模式
             if self.dragMode() == QGraphicsView.DragMode.RubberBandDrag:
-                self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
-                debug_print("  [MULTI_SELECT] Restored drag mode to ScrollHandDrag after rubber band selection")
-        # ----------------------------------------------------------------------------
-            
+                self.setDragMode(QGraphicsView.DragMode.NoDrag)
+                debug_print("  [MULTI_SELECT] Restored drag mode to NoDrag after rubber band selection")
+    
+    def _handle_card_drop_to_container(self, pos):
+        """处理卡片拖拽到容器内释放"""
+        scene_pos = self.mapToScene(pos)
+        
+        # 获取点击位置的所有项目
+        items = self.items(pos)
+        
+        # 查找是否有容器卡片
+        container_card = None
+        for item in items:
+            if isinstance(item, TaskCard) and item.is_container:
+                container_card = item
+                break
+        
+        if not container_card:
+            return
+        
+        # 查找所有被选中的卡片（可能是拖拽的卡片）
+        for item in self.scene.items():
+            if isinstance(item, TaskCard) and item.isSelected() and item != container_card:
+                # 检查卡片中心是否在容器范围内
+                card_center = item.sceneBoundingRect().center()
+                container_rect = container_card.sceneBoundingRect()
+                
+                # 如果卡片中心在容器内
+                if container_rect.contains(card_center):
+                    # 将卡片设置为容器的子卡片
+                    item.set_parent_card(container_card)
+                    logger.info(f"将卡片 {item.card_id} ({item.task_type}) 放入容器 {container_card.card_id}")
+                    return
+        
+        # 也检查场景位置附近的卡片（防止多选情况）
+        for item in self.scene.items():
+            if isinstance(item, TaskCard) and item != container_card and not item.is_container:
+                card_center = item.sceneBoundingRect().center()
+                container_rect = container_card.sceneBoundingRect()
+                
+                # 如果卡片中心在容器内且距离释放点较近
+                if container_rect.contains(card_center):
+                    dist = (card_center - scene_pos).manhattanLength()
+                    if dist < 100:  # 距离阈值
+                        item.set_parent_card(container_card)
+                        logger.info(f"将卡片 {item.card_id} ({item.task_type}) 放入容器 {container_card.card_id}")
+                        return
+
     def clear_workflow(self):
+        """Removes all cards and connections from the scene using scene.clear()."""
         """Removes all cards and connections from the scene using scene.clear()."""
         # --- 任务运行安全检查 ---
         try:
@@ -1307,11 +1430,28 @@ class WorkflowView(QGraphicsView):
         # ... (removed commented out block) ...
         # -----------------------------------------------------------------------------
 
-        item = self.itemAt(pos) # itemAt uses QPoint
+        # --- 获取点击位置的所有项目，优先检测连接线 ---
+        # 使用 items() 方法获取所有重叠的项目，因为连接线可能在卡片下面
+        items_at_pos = self.items(pos)
+        item = None
+        # 调试：打印所有找到的项目类型
+        debug_print(f"  [CONN_DEBUG] All items at pos: {[type(it).__name__ for it in items_at_pos]}")
+        # 优先查找 ConnectionLine 对象
+        for it in items_at_pos:
+            if isinstance(it, ConnectionLine):
+                item = it
+                debug_print(f"  [CONN_DEBUG] Found ConnectionLine: {it}")
+                break
+        # 如果没有找到连接线，使用第一个项目
+        if not item and items_at_pos:
+            item = items_at_pos[0]
+            debug_print(f"  [CONN_DEBUG] No ConnectionLine found, using first item: {type(item).__name__}")
+        
         debug_print(f"\n--- [DEBUG] WorkflowView.show_context_menu --- ") # DEBUG
         debug_print(f"  [DEBUG] Signal click position (view): {pos}") # DEBUG
         debug_print(f"  [DEBUG] Calculated click position (scene): {scene_pos}") # DEBUG
-        debug_print(f"  [DEBUG] Item at position: {type(item).__name__}") # DEBUG
+        debug_print(f"  [DEBUG] Items at position count: {len(items_at_pos)}") # DEBUG
+        debug_print(f"  [DEBUG] Selected item type: {type(item).__name__ if item else 'None'}") # DEBUG
         if item:
              # Try accessing attributes common to QGraphicsItem or specific ones
              if isinstance(item, TaskCard):
@@ -1325,10 +1465,9 @@ class WorkflowView(QGraphicsView):
 
         # --- 使用主题系统设置菜单样式 --- 
         try:
-            from ui.theme import ThemeManager
-            theme_mode = ThemeManager.instance().get_current_mode()
-            from ui.theme.fluent_colors import FluentColors
-            colors = FluentColors.get_palette(theme_mode)
+            from ui.theme_manager import ThemeManager
+            theme_mode = QApplication.instance().theme_manager.get_current_theme()
+            QApplication.instance().theme_manager.get_colors()
             menu.setStyleSheet(f"""
                 QMenu {{
                     background-color: {colors["surface"]};
@@ -1445,15 +1584,22 @@ class WorkflowView(QGraphicsView):
 
         elif isinstance(item, ConnectionLine):
              # --- Connection Context Menu --- 
-            debug_print(f"  [DEBUG] Creating context menu for ConnectionLine.") # DEBUG
+            debug_print(f"  [DEBUG] Creating context menu for ConnectionLine: {item}") # DEBUG
+            debug_print(f"  [DEBUG] Connection details: start={item.start_item.card_id if item.start_item else 'None'} (type={item.start_item.task_type if item.start_item else 'None'}), end={item.end_item.card_id if item.end_item else 'None'} (type={item.end_item.task_type if item.end_item else 'None'}), type={item.line_type}")
+            debug_print(f"  [DEBUG] Connection in self.connections: {item in self.connections}")
+            debug_print(f"  [DEBUG] Connection scene: {item.scene()}")
             delete_conn_action = menu.addAction("删除连接")
+            debug_print(f"  [DEBUG] Showing context menu...")
             action = menu.exec(self.mapToGlobal(pos))
+            debug_print(f"  [DEBUG] Menu action result: {action}")
             if action == delete_conn_action:
                 conn_to_delete = item # Keep reference
-                debug_print(f"  [DEBUG] '删除连接' (context menu) action selected for {conn_to_delete}. Calling self.remove_connection...") # DEBUG (Fixed string escaping)
+                debug_print(f"  [DEBUG] '删除连接' action selected for {conn_to_delete}. Calling self.remove_connection...")
                 # remove_connection will trigger update_card_sequence_display if needed
                 self.remove_connection(conn_to_delete) # <-- Use the centralized method
                 debug_print("连接已通过 remove_connection 删除。") # DEBUG
+            else:
+                debug_print(f"  [DEBUG] No action or different action selected. Action: {action}")
 
         elif item is None: # Explicitly check for None for background
             # --- View Context Menu --- 
@@ -1900,7 +2046,6 @@ class WorkflowView(QGraphicsView):
             else:
                 logger.info("未从文件恢复视图变换。") # No valid transform data found
 
-  
         except Exception as e:
             debug_print(f"警告: 恢复视图变换或中心时出错: {e}")
             # --- END ADDED Block ---
@@ -1924,7 +2069,6 @@ class WorkflowView(QGraphicsView):
         self._loading_workflow = False
         debug_print(f"  [UNDO] Cleared loading workflow flag")
         logger.info(f"  [UNDO] Cleared loading workflow flag")
-
 
     def fit_view_to_items(self):
         """Adjusts the view to fit all items in the scene with padding."""
@@ -3020,6 +3164,12 @@ class WorkflowView(QGraphicsView):
         modifiers = event.modifiers()
         key = event.key()
 
+        # 跟踪空格键状态
+        if key == Qt.Key.Key_Space:
+            self._space_pressed = True
+            debug_print("  [KEY] Space key pressed")
+            return
+
         # Ctrl+C - 复制选中的卡片
         if modifiers == Qt.KeyboardModifier.ControlModifier and key == Qt.Key.Key_C:
             self.handle_copy_selected_cards()
@@ -3194,6 +3344,19 @@ class WorkflowView(QGraphicsView):
             event.accept() # We handled the delete event
         else:
             super().keyPressEvent(event) # Pass other keys to base class
+
+    def keyReleaseEvent(self, event):
+        """Handles key release events for tracking space key state."""
+        key = event.key()
+        
+        # 释放空格键时重置标志
+        if key == Qt.Key.Key_Space:
+            self._space_pressed = False
+            debug_print("  [KEY] Space key released")
+            return
+        
+        # 其他按键传递给父类
+        super().keyReleaseEvent(event)
     # -------------------------------------
 
     # --- ADDED: Method to update card display sequence numbers --- 
@@ -3572,12 +3735,6 @@ class WorkflowView(QGraphicsView):
                 self._remove_duplicate_port_connections(card, port_type)
 
         debug_print("  [GLOBAL_CLEANUP] Global duplicate connection cleanup completed")
-
-
-
-
-
-
 
     def zoomIn(self):
         # ... existing code ...

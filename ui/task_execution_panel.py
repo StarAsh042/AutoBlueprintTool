@@ -15,7 +15,6 @@ from .workflow_task_manager import WorkflowTaskManager
 
 logger = logging.getLogger(__name__)
 
-
 class TaskExecutionPanel(QWidget):
     """
     任务执行控制面板

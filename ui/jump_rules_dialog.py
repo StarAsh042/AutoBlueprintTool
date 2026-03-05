@@ -17,7 +17,6 @@ from .workflow_task_manager import WorkflowTaskManager
 
 logger = logging.getLogger(__name__)
 
-
 class JumpRulesDialog(QDialog):
     """
     跳转规则配置对话框

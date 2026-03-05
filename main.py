@@ -3,8 +3,7 @@ import ctypes # 用于检查管理员权限
 import os     # 用于路径和退出
 import json   # 用于JSON数据处理
 
-#  全局变量存储弹性心跳监控器
-resilient_heartbeat_monitor = None
+
 
 #  鼠标移动修复器
 class MouseMoveFixer:
@@ -169,7 +168,7 @@ class MouseMoveFixer:
 # 创建全局鼠标移动修复器实例
 mouse_move_fixer = MouseMoveFixer()
 
-# 工具 修复：设置虚拟环境路径，确保使用 venv_build 中的依赖
+# 设置虚拟环境路径，确保使用 venv_build 中的依赖
 def setup_virtual_environment():
     """设置虚拟环境路径，确保使用正确的依赖"""
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -206,21 +205,13 @@ import glob     # <-- Import glob
 import time   # <-- Import time for sleep in listener
 import threading # <-- Import threading for async OCR initialization
 import socket    # <-- 添加socket导入用于网络连接检查
-import secrets   # <-- 添加secrets导入用于生成会话令牌
-import base64    # <-- 添加base64导入用于加密
+
 from typing import Optional # <-- MODIFIED: Removed unused Dict, Any
 from traceback import format_exception # <-- ADDED: For global_exception_handler
 
-# --- ADDED: Licensing & HTTP Imports ---
-import requests
-import platform
-import uuid
-import hashlib
-import urllib3 # To disable SSL warnings if needed
-# base64 import removed - no longer needed
-# -------------------------------------
 
-# --- REMOVED: Unused import publish dialog ---
+
+
 
 # 添加当前目录到 Python 路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -228,19 +219,10 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
     print(f"已添加 {current_dir} 到 Python 路径")
 
-# 导入高级反编译保护模块
-try:
-    from advanced_anti_decompile import init_advanced_protection, stop_advanced_protection
-    # 启动高级保护（现在不会退出程序）
-    init_advanced_protection()
-    print("成功 高级反编译保护已启动（检测模式）")
-except ImportError as e:
-    print(f"警告 高级反编译保护模块导入失败: {e}")
-except Exception as e:
-    print(f"警告 高级反编译保护初始化失败: {e}")
 
 
-# --- ADDED: Import keyboard library ---
+
+
 try:
     import keyboard
     KEYBOARD_LIB_AVAILABLE = True
@@ -249,7 +231,7 @@ except ImportError:
     KEYBOARD_LIB_AVAILABLE = False
     logging.warning("'keyboard' 库未安装，全局热键功能将不可用。请运行 'pip install keyboard'。")
 
-# --- ADDED: Check admin privileges ---
+
 def is_admin():
     """检查是否以管理员权限运行
 
@@ -273,209 +255,26 @@ def is_admin():
         logging.error(f"检查管理员权限时发生异常: {e}")
         return False
 
-def request_admin_privileges():
-    """请求管理员权限（已废弃，使用自动提权逻辑）
-
-    注意：此函数已被自动提权逻辑替代，保留仅为向后兼容
-    """
-    logging.warning("request_admin_privileges() 已废弃，请使用自动提权逻辑")
-    return is_admin()
-
-def show_admin_privilege_dialog():
-    """显示管理员权限提示对话框"""
-    from PySide6.QtWidgets import QMessageBox, QApplication
-    from PySide6.QtCore import Qt
-
-    # 确保有QApplication实例
-    app = QApplication.instance()
-    if app is None:
-        app = QApplication([])
-
-    msg = QMessageBox()
-    msg.setWindowTitle("需要管理员权限")
-    msg.setIcon(QMessageBox.Icon.Information)
-    msg.setText("检测到程序未以管理员权限运行")
-    msg.setInformativeText(
-        "为了使用全局热键功能（在主窗口未激活时也能使用F9/F10），\n"
-        "程序需要管理员权限。\n\n"
-        "您可以选择：\n"
-        "• 重新以管理员身份运行（推荐）\n"
-        "• 继续使用（仅在主窗口激活时热键有效）"
-    )
-
-    restart_btn = msg.addButton("重新以管理员身份运行", QMessageBox.ButtonRole.AcceptRole)
-    continue_btn = msg.addButton("继续使用", QMessageBox.ButtonRole.RejectRole)
-
-    msg.setDefaultButton(restart_btn)
-    msg.exec()
-
-    if msg.clickedButton() == restart_btn:
-        return True
-    else:
-        return False
 # ------------------------------------
 
-# --- ADDED: For GetClientRect ---
+
 from ctypes import wintypes
 # ------------------------------
 
-# hwid库已移除，不再使用
 
-# --- ADDED: Import wmi library for WMI method ---
-# Import conditionally as it's Windows-specific and might not be installed
-try:
-    import wmi
-    WMI_LIB_AVAILABLE = True
-except ImportError:
-    WMI_LIB_AVAILABLE = False
-    logging.warning("'wmi' 库未安装，WMI方法获取硬件ID将不可用。请运行 'pip install wmi'。")
-# ------------------------------------------------
+
+
 
 # --- Constants for Logging ---
 LOG_DIR = "." # Log directory (current directory)
 LOG_FILENAME_FORMAT = "app_%Y-%m-%d.log"
 MAX_LOG_FILES = 10 # Keep the 10 most recent log files
 
-# --- Constants for Licensing ---
-#  防逆向优化：混淆敏感信息
-import base64
-import time
-import psutil
 
 
 
-# 简化版反调试检测（仅记录，不退出）
-def _0x4a2b():
-    """简化的反调试检测"""
-    try:
-        logging.info("反逆向检测通过，未发现威胁")
-        return False
-    except Exception as e:
-        logging.error(f"反逆向检测过程中发生异常: {e}")
-        return False
-
-# 简化服务器配置
-DEFAULT_SERVER_URL = "https://jw3.top:8000"
-DEFAULT_SERVER_CONFIG_URL = "https://jw3.top:8000"
-_INTERNAL_AUTH_SERVER = DEFAULT_SERVER_URL
-_INTERNAL_CONFIG_SERVER = DEFAULT_SERVER_CONFIG_URL
-
-# 简化的安全检查函数
-def _0xcafe():
-    """简化的代码完整性验证"""
-    return True
-
-def _0xf00d():
-    """简化的内存保护"""
-    return False
-
-def _0x1337():
-    """简化的字节码保护"""
-    return True
-
-def _0xbyte():
-    """简化的字节码完整性检查"""
-    return False
-
-def _0xpyprotect():
-    """简化的反编译保护"""
-    return False
-
-def _0xdead():
-    """简化的虚假验证路径"""
-    return False, 404, "fake"
-
-def _0xbabe():
-    """简化的虚假验证路径"""
-    return False, 403, "invalid"
-
-def _0xface():
-    """简化的虚假验证路径"""
-    return True, 200, "success"
 
 
-
-# 简化服务器配置，不再加载外部配置
-SERVER_URL = _INTERNAL_AUTH_SERVER
-SERVER_CONFIG_URL = _INTERNAL_CONFIG_SERVER
-TASK_SERVER_URL = _INTERNAL_CONFIG_SERVER
-AUTH_ENDPOINT = "/api/ping_auth"
-LICENSE_FILE = "license.dat"
-
-# 简化SSL验证配置
-VERIFY_SSL = True
-
-# --- ADDED: Safe Error Message Function ---
-def sanitize_error_message(error_msg: str) -> str:
-    """
-    清理错误信息中的敏感内容，防止IP地址、端口等敏感信息泄露到日志中
-    """
-    import re
-    
-    # 移除IP地址和端口信息的模式
-    patterns = [
-        # HTTPConnectionPool模式: host='IP', port=PORT
-        r"host='[\d\.]+', port=\d+",
-        # 直接的IP:PORT模式  
-        r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d+",
-        # HTTPConnectionPool完整信息
-        r"HTTPConnectionPool\(host='[^']+', port=\d+\)",
-        # URL中的IP地址
-        r"https?://[\d\.]+:\d+",
-        # 其他可能的敏感路径
-        r"/api/[a-zA-Z_/]+",
-    ]
-    
-    sanitized_msg = error_msg
-    for pattern in patterns:
-        sanitized_msg = re.sub(pattern, "[SERVER_INFO]", sanitized_msg)
-    
-    # 如果包含连接相关错误，提供更简洁的描述
-    if "Read timed out" in sanitized_msg or "Connection" in sanitized_msg:
-        return "连接服务器超时或网络不可用"
-    elif "Max retries exceeded" in sanitized_msg:
-        return "服务器连接重试次数已达上限"
-    elif "Connection refused" in sanitized_msg:
-        return "服务器拒绝连接"
-    elif "Name or service not known" in sanitized_msg:
-        return "服务器地址解析失败"
-    
-    return sanitized_msg
-
-def sanitize_sensitive_data(data, data_type="unknown"):
-    """
-    清理敏感数据用于日志输出，防止CSRF token、许可证密钥等敏感信息泄露
-    """
-    import re
-
-    if isinstance(data, dict):
-        sanitized = {}
-        for key, value in data.items():
-            key_lower = key.lower()
-            if any(sensitive in key_lower for sensitive in ['csrf', 'token', 'key', 'password', 'secret', 'auth', 'hw_id']):
-                if isinstance(value, str) and len(value) > 8:
-                    sanitized[key] = f"{value[:4]}***{value[-4:]}"
-                else:
-                    sanitized[key] = "***"
-            elif key_lower == 'set-cookie' and isinstance(value, str):
-                # 特殊处理set-cookie头部，清理其中的敏感token
-                sanitized_cookie = re.sub(r'csrftoken=[^;,\s]*', 'csrftoken=***', value)
-                sanitized_cookie = re.sub(r'sessionid=[^;,\s]*', 'sessionid=***', sanitized_cookie)
-                sanitized_cookie = re.sub(r'token=[^;,\s]*', 'token=***', sanitized_cookie, flags=re.IGNORECASE)
-                sanitized[key] = sanitized_cookie
-            else:
-                sanitized[key] = value
-        return sanitized
-    elif isinstance(data, str):
-        # 清理字符串中的敏感信息
-        data = re.sub(r'csrftoken=[^;,\s]*', 'csrftoken=***', data)
-        data = re.sub(r'sessionid=[^;,\s]*', 'sessionid=***', data)
-        data = re.sub(r'token=[^&\s]*', 'token=***', data, flags=re.IGNORECASE)
-        data = re.sub(r'key=[^&\s]*', 'key=***', data, flags=re.IGNORECASE)
-        data = re.sub(r'hw_id=[^&\s]*', 'hw_id=***', data, flags=re.IGNORECASE)
-        return data
-    else:
-        return str(data)
 
 # --- Function to Setup Logging and Cleanup Old Logs ---
 def setup_logging_and_cleanup():
@@ -540,7 +339,7 @@ def setup_logging_and_cleanup():
     logging.info(f"日志记录已初始化。当前日志文件: {current_log_filepath}")
     logging.info("日志配置: 文件记录INFO级别及以上，控制台显示所有级别")
 
-    # --- ADDED: Set urllib3 logging level to INFO to hide detailed connection logs ---
+    
     logging.getLogger("urllib3.connectionpool").setLevel(logging.INFO)
     # -----------------------------------------------------------------------------
 
@@ -599,34 +398,11 @@ def cleanup_old_adb_services():
 
 # is_admin 函数已在文件开头定义（第253行），无需重复定义
 
-def check_uac_enabled():
-    """检查UAC是否启用
-
-    Returns:
-        bool: True表示UAC已启用，False表示UAC已禁用
-    """
-    try:
-        import winreg
-        key = winreg.OpenKey(
-            winreg.HKEY_LOCAL_MACHINE,
-            r"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System",
-            0,
-            winreg.KEY_READ
-        )
-        value, _ = winreg.QueryValueEx(key, "EnableLUA")
-        winreg.CloseKey(key)
-        is_enabled = (value == 1)
-        logging.debug(f"UAC状态检测: EnableLUA = {value}, UAC启用 = {is_enabled}")
-        return is_enabled
-    except Exception as e:
-        logging.warning(f"无法检测UAC状态: {e}，默认假设UAC已启用")
-        return True  # 默认假设UAC启用
 # --- END is_admin definition ---
 
 # --- Admin elevation block --- #
 # 自动提权逻辑：确保程序以管理员权限运行
 # 兼容性：Windows 7/8/8.1/10/11 及 Server 版本
-# <<<< UNCOMMENTED START >>>>
 if os.name == 'nt' and not is_admin():
     reason_str = "程序需要管理员权限才能确保所有功能正常运行（全局快捷键、窗口操作等）"
     logging.warning(f"检测到程序未以管理员权限运行，正在尝试自动提权...")
@@ -640,7 +416,7 @@ if os.name == 'nt' and not is_admin():
     except:
         logging.info("  无法检测Windows版本信息")
 
-    # 🔧 添加安全检查，确保在任何情况下都能正确退出
+    # 添加安全检查，确保在任何情况下都能正确退出
     elevation_success = False
     elevation_error = None
 
@@ -719,7 +495,7 @@ if os.name == 'nt' and not is_admin():
         logging.error(f"❌ 请求管理员权限时发生异常: {elevation_error}", exc_info=True)
         logging.error("  建议：请尝试手动右键 -> 以管理员身份运行此程序")
 
-    # 🔧 关键修复：无论提权是否成功，都必须退出当前进程
+    # 关键修复：无论提权是否成功，都必须退出当前进程
     # 原因：如果提权成功，新的管理员进程将启动；当前进程必须退出以避免双实例
     logging.info("=" * 80)
     if elevation_success:
@@ -750,422 +526,12 @@ elif os.name == 'nt':
         logging.warning("权限检查异常：is_admin() 返回 False 但未进入提权流程")
 
 else:
-    # 非Windows系统
-    logging.info("检测到非Windows系统，跳过管理员权限检查")
-# <<<< UNCOMMENTED END >>>>
-
-
-def get_hardware_id() -> Optional[str]:
-    """获取或生成硬件ID - 强制重新生成以确保与执行器一致"""
-    logging.info("正在重新生成硬件ID以确保与执行器一致...")
-
-    # 工具 修复：强制重新生成硬件ID，不读取现有文件
-    # 这样可以确保使用与执行器完全相同的算法生成硬件ID
-
-    old_hwid = None # Initialize old_hwid to None
-    old_hwid_file = "hardware_id.txt"
-
-    logging.info("工具 强制重新生成硬件ID以确保与执行器算法一致")
-
-    ids = {}  # 存储不同方法获取的SHA256格式ID
-
-    # Method 1 (Now first): Use Windows Management Instrumentation (WMI)
-    # Prioritize WMI as it often provides a stable system UUID on Windows.
-    # 工具 修复：使用与执行器完全相同的条件检查
-    if WMI_LIB_AVAILABLE and os.name == 'nt':  # Check WMI_LIB_AVAILABLE and OS
-        try:
-            c = wmi.WMI()
-            # Iterate through Win32_ComputerSystemProduct to get UUID
-            wmi_uuids = [item.UUID for item in c.Win32_ComputerSystemProduct() if item.UUID]
-            if wmi_uuids:
-                # Usually only one UUID, take the first one
-                wmi_uuid_str = wmi_uuids[0]
-                # Normalize WMI UUID format (remove hyphens) and hash
-                wmi_uuid_cleaned = wmi_uuid_str.replace('-', '').lower()
-                if len(wmi_uuid_cleaned) == 32 and all(c in '0123456789abcdef' for c in wmi_uuid_cleaned):
-                    hasher = hashlib.sha256()
-                    hasher.update(wmi_uuid_cleaned.encode('utf-8'))
-                    final_id = hasher.hexdigest()
-                    logging.info("通过WMI获取到UUID并哈希化生成硬件ID")
-                    ids['wmi'] = final_id  # Add to ids dictionary
-                else:
-                    logging.warning(f"WMI方法获取的UUID格式异常: {wmi_uuid_str}")
-            else:
-                logging.warning("WMI方法未获取到UUID。")
-        except Exception as e:
-            logging.warning(f"WMI方法失败: {e}")
-    # elif os.name != 'nt':  # 注释掉无法访问的代码
-        # logging.info("非 Windows 系统，跳过 WMI 方法。")
-    elif not WMI_LIB_AVAILABLE:
-        logging.warning("'wmi' 库不可用，跳过 WMI 方法。")
-
-
-    # Method 2: 的备用方法 - 基于系统信息生成稳定ID
-    # 如果WMI方法失败，使用这个的方法
-    if 'wmi' not in ids:
-        try:
-            # 使用系统基本信息生成稳定的硬件ID
-            import socket
-            system_info = f"{platform.system()}-{platform.machine()}-{socket.gethostname()}"
-
-            # 添加CPU核心数作为额外标识
-            try:
-                import multiprocessing
-                system_info += f"-{multiprocessing.cpu_count()}"
-            except:
-                pass
-
-            hasher = hashlib.sha256()
-            hasher.update(system_info.encode('utf-8'))
-            final_id = hasher.hexdigest()
-            logging.info("通过系统信息生成硬件ID")
-            ids['system'] = final_id
-
-        except Exception as e:
-            logging.warning(f"系统信息方法失败: {e}")
-
-
-    # 工具 修复：强制生成并保存硬件ID，确保与执行器一致
-    if len(ids) > 0:  # If any new SHA256 ID was successfully generated
-        # Prioritize WMI if available and succeeded on Windows
-        if 'wmi' in ids:
-            selected_id = ids['wmi']
-            logging.info("成功 使用WMI方法生成的硬件ID")
-        # Use system info method as fallback
-        elif 'system' in ids:
-            selected_id = ids['system']
-            logging.info("成功 使用系统信息方法生成的硬件ID")
-        else:  # Should not happen if len(ids) > 0 and methods populated ids
-            logging.error("内部错误：生成硬件ID时未按优先级选择。")
-            # Fallback to the first available ID (should be safe as all are SHA256 now)
-            selected_id = list(ids.values())[0]  # This will be the first ID successfully added to `ids`
-
-        # 工具 修复：强制保存新生成的硬件ID
-        try:
-            with open(old_hwid_file, 'w', encoding='utf-8') as f:
-                f.write(selected_id)
-            logging.info(f"新的硬件ID已保存到 {old_hwid_file}")
-        except Exception as e:
-            logging.warning(f"保存硬件ID失败: {e}")
-
-        return selected_id  # Return the newly generated SHA256 ID
-    else:
-        # 工具 如果所有方法都失败，生成一个基于当前时间的唯一ID
-        import time
-        import uuid
-        fallback_str = f"{platform.node()}-{int(time.time())}-{uuid.uuid4()}"
-        hasher = hashlib.sha256()
-        hasher.update(fallback_str.encode('utf-8'))
-        fallback_id = hasher.hexdigest()
-
-        logging.warning("所有硬件ID生成方法都失败，使用备用方案")
-
-        # 保存备用硬件ID
-        try:
-            with open(old_hwid_file, 'w', encoding='utf-8') as f:
-                f.write(fallback_id)
-            logging.info(f"备用硬件ID已保存到 {old_hwid_file}")
-        except Exception as e:
-            logging.warning(f"保存备用硬件ID失败: {e}")
-
-        return fallback_id
-
-# 许可证加密相关函数已删除，因为不再需要许可证验证
-
-def enforce_online_validation(hardware_id: str, license_key: str) -> tuple:
-    """ 简化的授权验证，直接返回成功"""
-    try:
-        logging.info("跳过强制在线验证，直接返回验证成功...")
-        
-        # 生成会话令牌
-        import secrets
-        session_token = secrets.token_hex(32)
-        sys._auth_session_token = session_token
-        sys._last_validation_time = time.time()
-
-        logging.info("验证成功，会话令牌已生成")
-        return True, 200, "demo"
-
-    except Exception as e:
-        logging.critical(f" 验证异常: {e}")
-        return False, 500, None
-
-def check_network_connectivity() -> bool:
-    """检查网络连接性"""
-    try:
-        import socket
-        # 尝试连接到多个知名服务器
-        test_hosts = [
-            ("8.8.8.8", 53),      # Google DNS
-            ("1.1.1.1", 53),      # Cloudflare DNS
-            ("208.67.222.222", 53) # OpenDNS
-        ]
-
-        for host, port in test_hosts:
-            try:
-                socket.create_connection((host, port), timeout=3)
-                return True
-            except:
-                continue
-
-        return False
-    except Exception as e:
-        logging.warning(f"网络连接检查异常: {e}")
-        return False
-
-def runtime_license_check():
-    """简化的运行时授权检查"""
-    try:
-        # 检查授权验证标记
-        if hasattr(sys, '_license_validated') and getattr(sys, '_license_validated', False):
-            return True
-        return False
-    except Exception as e:
-        logging.critical(f" 运行时授权检查异常: {e}")
-        return False
-
-def auto_detect_network_quality() -> dict:
-    """自动检测网络质量并返回适合的配置"""
-    try:
-        import socket
-        import time
-
-        # 测试网络延迟和稳定性
-        test_hosts = [
-            ("8.8.8.8", 53),
-            ("1.1.1.1", 53),
-            ("208.67.222.222", 53)
-        ]
-
-        successful_tests = 0
-        total_latency = 0
-
-        for host, port in test_hosts:
-            try:
-                start_time = time.time()
-                socket.create_connection((host, port), timeout=5)
-                latency = (time.time() - start_time) * 1000  # 转换为毫秒
-                total_latency += latency
-                successful_tests += 1
-            except:
-                continue
-
-        if successful_tests == 0:
-            # 网络不可用，使用保守配置
-            return {
-                'interval': 900,
-                'max_retries': 6,
-                'base_delay': 3.0,
-                'max_delay': 180.0,
-                'failure_threshold': 10,
-                'profile': 'offline'
-            }
-
-        success_rate = successful_tests / len(test_hosts)
-        avg_latency = total_latency / successful_tests if successful_tests > 0 else 1000
-
-        if success_rate >= 0.8 and avg_latency < 100:
-            # 优秀网络
-            return {
-                'interval': 2400,
-                'max_retries': 2,
-                'base_delay': 1.0,
-                'max_delay': 30.0,
-                'failure_threshold': 3,
-                'profile': 'excellent'
-            }
-        elif success_rate >= 0.6 and avg_latency < 300:
-            # 良好网络
-            return {
-                'interval': 1800,
-                'max_retries': 3,
-                'base_delay': 1.0,
-                'max_delay': 60.0,
-                'failure_threshold': 5,
-                'profile': 'good'
-            }
-        else:
-            # 较差网络
-            return {
-                'interval': 1200,
-                'max_retries': 5,
-                'base_delay': 2.0,
-                'max_delay': 120.0,
-                'failure_threshold': 8,
-                'profile': 'poor'
-            }
-
-    except Exception as e:
-        logging.warning(f"网络质量检测失败: {e}，使用默认配置")
-        return {
-            'interval': 1800,
-            'max_retries': 3,
-            'base_delay': 1.0,
-            'max_delay': 60.0,
-            'failure_threshold': 5,
-            'profile': 'default'
-        }
-
-def start_resilient_heartbeat_monitor(hardware_id: str, license_key: str, **kwargs):
-    """ 简化的心跳监控器启动函数"""
-    global resilient_heartbeat_monitor
-
-    try:
-        # 跳过实际的心跳监控器启动，只记录信息
-        logging.info(" 跳过弹性许可证心跳监控器启动")
-        logging.info(" 由于已跳过许可证验证，无需心跳监控")
-
-    except Exception as e:
-        logging.error(f" 启动弹性心跳监控器失败: {e}")
-        # 不再抛出异常，允许程序继续运行
-        pass
-
-# 备用心跳监控器已删除
-
-def cleanup_license_monitoring():
-    """ 清理许可证监控资源"""
-    global resilient_heartbeat_monitor
-    try:
-        if resilient_heartbeat_monitor:
-            try:
-                resilient_heartbeat_monitor.stop()
-                logging.info(" 弹性许可证心跳监控已清理")
-            except Exception as e:
-                logging.error(f" 清理许可证监控时出错: {e}")
-            finally:
-                resilient_heartbeat_monitor = None
-    except NameError:
-        # 如果变量未定义，忽略错误
-        pass
-
-# 注册程序退出时的清理函数
-import atexit
-atexit.register(cleanup_license_monitoring)
-
-# 注册高级保护清理函数
-def cleanup_advanced_protection():
-    """清理高级反编译保护"""
-    try:
-        if 'stop_advanced_protection' in globals():
-            stop_advanced_protection()
-            print("成功 高级反编译保护已清理")
-    except Exception as e:
-        print(f"警告 清理高级保护时出错: {e}")
-
-atexit.register(cleanup_advanced_protection)
-
-# 安全检查相关函数已删除，因为不再需要许可证验证
-
-def validate_license_with_server(hw_id: str, key: str) -> tuple[bool, int, str]:
-    """ Validates the HW ID and license key with the server using HTTPS.
-       Returns a tuple: (is_valid: bool, status_code: int, license_type: str)
-    """
-    #  优化：减少重复的安全检查
-    _0x4a2b()  # 反调试检测
-    
-    # 跳过实际的网络请求，直接返回验证成功
-    logging.info("跳过实际的许可证验证网络请求，直接返回验证成功...")
-    return True, 200, "demo"
-
-# --- ADDED: Function to attempt client registration ---
-def attempt_client_registration(hw_id: str, session: requests.Session) -> bool:
-    """尝试向服务器注册硬件ID"""
-    # 跳过实际的网络请求，直接返回注册成功
-    logging.info("跳过实际的硬件注册网络请求，直接返回注册成功...")
-    return True
-
-# --- ADDED: Function to attempt HWID migration ---
-def attempt_migration(old_hw_id: str, license_key: str, session: requests.Session) -> Optional[str]:
-    """
-    Attempts to migrate an old hardware ID to the new format on the server.
-    Returns the new hardware ID (SHA256) if successful, otherwise None.
-    """
-    # 跳过实际的网络请求，直接返回成功
-    logging.info("跳过实际的硬件ID迁移网络请求，直接返回成功...")
-    return old_hw_id
-
-# --- END ADDED ---
-
-# --- ADDED: Function to bind license to HWID (Definition) ---
-def bind_license_to_hwid(hw_id: str, license_key: str, session: requests.Session) -> bool:
-    """将许可证绑定到特定硬件ID (与服务器API /api/licensing/bind_license 通信)
-
-    Args:
-        hw_id: 硬件ID.
-        license_key: 许可证密钥.
-        session: requests.Session 对象.
-
-    Returns:
-        True 如果绑定成功, 否则 False.
-    """
-    # 跳过实际的网络请求，直接返回绑定成功
-    logging.info("跳过实际的许可证绑定网络请求，直接返回绑定成功...")
-    return True
-# --- END ADDED ---
+    # 非 Windows 系统
+    logging.info("检测到非 Windows 系统，跳过管理员权限检查")
 
 # --- Function to check window resolution ---
 RESOLUTION_CHECK_TOLERANCE = 2 # Allow +/- 2 pixels difference
 
-def check_resolution_and_needs_admin(config_data):
-    """Checks target window client resolution and determines if admin rights might be needed."""
-    logging.info("检查窗口分辨率以确定是否需要提权...")
-
-    target_title = config_data.get('target_window_title')
-    target_width = config_data.get('custom_width')
-    target_height = config_data.get('custom_height')
-    emulator_type = config_data.get('emulator_type', 'auto')  # 游戏 获取模拟器类型
-
-    if not target_title or not target_width or not target_height or target_width <= 0 or target_height <= 0:
-        logging.warning("配置中缺少目标窗口标题或有效的目标宽高，假定需要提权。")
-        return True # Need admin if config is incomplete
-
-    logging.info(f"目标窗口: '{target_title}', 目标客户区尺寸: {target_width}x{target_height}, 模拟器类型: {emulator_type}")
-
-    # 游戏 使用增强的窗口查找函数
-    hwnd = find_enhanced_window_handle(target_title, emulator_type)
-
-    if not hwnd:
-        logging.warning(f"未找到标题为 '{target_title}' 的窗口，假定需要提权。")
-        return True # Need admin if window not found
-
-    # logging.info(f"找到窗口句柄: {hwnd}")
-
-    # GetClientRect requires wintypes.RECT
-    # --- ADDED: Get DPI for scaling ---
-    user32 = ctypes.windll.user32  # 工具 修复：重新定义user32
-    dpi = user32.GetDpiForWindow(hwnd) if hasattr(user32, 'GetDpiForWindow') else 96 # Fallback to 96 if API not available (older Windows)
-    scale_factor = dpi / 96.0
-    logging.info(f"窗口 DPI: {dpi} (缩放因子: {scale_factor:.2f})")
-    # -----------------------------------
-    rect = wintypes.RECT()
-    if user32.GetClientRect(hwnd, ctypes.byref(rect)):
-        client_width = rect.right - rect.left
-        client_height = rect.bottom - rect.top
-        logging.info(f"窗口 '{target_title}' 的客户区尺寸: {client_width}x{client_height}")
-
-        # 工具 Bug修复：DPI缩放计算错误！
-        # GetClientRect返回的是逻辑像素，不需要再乘以缩放因子
-        # 如果要获取物理像素，应该乘以缩放因子，但这里应该使用逻辑像素进行比较
-        # 因为配置中的尺寸通常是逻辑尺寸
-        scaled_width = client_width   # 直接使用逻辑像素
-        scaled_height = client_height # 直接使用逻辑像素
-        logging.info(f"应用 DPI 缩放后的客户区尺寸 (估算): {scaled_width}x{scaled_height}")
-
-        # --- MODIFIED: Check with tolerance ---
-        width_match = abs(scaled_width - target_width) <= RESOLUTION_CHECK_TOLERANCE
-        height_match = abs(scaled_height - target_height) <= RESOLUTION_CHECK_TOLERANCE
-        if width_match and height_match:
-            logging.info(f"窗口客户区尺寸在容差 ({RESOLUTION_CHECK_TOLERANCE}像素) 内匹配配置。跳过提权请求。")
-            return False # Resolution matches, DO NOT need admin for this reason
-        else:
-            logging.warning(f"窗口客户区尺寸 ({scaled_width}x{scaled_height}) 与配置 ({target_width}x{target_height}) 不匹配 (容差: {RESOLUTION_CHECK_TOLERANCE})。假定需要提权。")
-            return True # Resolution mismatch, need admin
-    else:
-        # Attempt to get error details
-        error_code = ctypes.get_last_error()
-        error_message = ctypes.FormatError(error_code) if error_code != 0 else "未知错误"
-        logging.error(f"调用 GetClientRect 失败，错误码: {error_code} ({error_message})。假定需要提权。")
-        return True # Failed to get client rect, assume need admin
 
 # --- Configuration Loading ---
 CONFIG_FILE = "config.json"
@@ -1380,9 +746,9 @@ def load_config() -> dict:
         'operation_mode': 'auto',       # 新增：操作模式设置
         'custom_width': 1280,           # 默认宽度1280
         'custom_height': 720,           # 默认高度720
-        'emulator_type': 'auto',        # 游戏 新增：模拟器类型设置
-        'binding_method': 'enhanced',   # 工具 新增：绑定方法设置
-        'ldplayer_console_path': None,  # 游戏 雷电模拟器控制台路径
+        'emulator_type': 'auto',        # 新增：模拟器类型设置
+        'binding_method': 'enhanced',   # 新增：绑定方法设置
+        'ldplayer_console_path': None,  # 雷电模拟器控制台路径
         # 热键配置 - 使用新的统一键名
         'start_task_hotkey': 'F9',      # 启动任务热键，默认F9
         'stop_task_hotkey': 'F10',      # 停止任务热键，默认F10
@@ -1414,13 +780,13 @@ def save_config(config_to_save: dict):
     try:
         # Ensure default keys exist
         config_to_save.setdefault('target_window_title', None)
-        config_to_save.setdefault('execution_mode', 'background')  # 靶心 默认后台模式
-        config_to_save.setdefault('operation_mode', 'auto')       # 新增：操作模式设置
-        config_to_save.setdefault('custom_width', 1280)           # 靶心 默认宽度1280
-        config_to_save.setdefault('custom_height', 720)           # 靶心 默认高度720
-        config_to_save.setdefault('emulator_type', 'auto')        # 游戏 新增：模拟器类型设置
-        config_to_save.setdefault('binding_method', 'enhanced')   # 工具 新增：绑定方法设置
-        config_to_save.setdefault('ldplayer_console_path', None)  # 游戏 雷电模拟器控制台路径
+        config_to_save.setdefault('execution_mode', 'background')  # 默认后台模式
+        config_to_save.setdefault('operation_mode', 'auto')       # 操作模式设置
+        config_to_save.setdefault('custom_width', 1280)           # 默认宽度 1280
+        config_to_save.setdefault('custom_height', 720)           # 默认高度 720
+        config_to_save.setdefault('emulator_type', 'auto')        # 模拟器类型设置
+        config_to_save.setdefault('binding_method', 'enhanced')   # 绑定方法设置
+        config_to_save.setdefault('ldplayer_console_path', None)  # 雷电模拟器控制台路径
 
         # 快捷键配置 - 确保使用新键名
         config_to_save.setdefault('start_task_hotkey', 'F9')
@@ -1452,103 +818,20 @@ config = load_config()
 # However, for simplicity and common usage, moving them slightly earlier
 # after basic setup might be acceptable if elevation is handled robustly.
 # Let's keep them here for now as they involve UI and task modules.
-from PySide6.QtWidgets import (QApplication, QMessageBox, QDialog,
-                               QLineEdit, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
-                               QSpacerItem, QSizePolicy, QDialogButtonBox, QSystemTrayIcon, QMenu) # <<< MODIFIED: Added QSystemTrayIcon, QMenu
-from PySide6.QtCore import QThread, QObject, Signal, QTimer, Qt # <<< MODIFIED: Removed unused imports
-from PySide6.QtGui import QAction, QIcon # <<< ADDED: For system tray
-from ui.main_window import MainWindow # Import MainWindow
-from tasks import TASK_MODULES # <-- ADDED Import for TASK_MODULES
+from PySide6.QtWidgets import (
+    QApplication, QMessageBox, QDialog,
+    QLineEdit, QLabel, QPushButton, QVBoxLayout, QHBoxLayout,
+    QSpacerItem, QSizePolicy, QDialogButtonBox, QSystemTrayIcon, QMenu
+)
+from PySide6.QtCore import QThread, QObject, Signal, QTimer, Qt
+from PySide6.QtGui import QAction, QIcon, QActionGroup
+from ui.main_window import MainWindow
+from tasks import TASK_MODULES
 
-# --- ADDED: Global Variables for License Type ---
-VALIDATED_LICENSE_TYPE = "unknown" # Store the validated license type
 
 
-# --- END ADDED ---
 
-# --- ADDED: NetworkTask Class (Skeleton for asynchronous operations) ---
-class NetworkTask(QThread):
-    finished = Signal(bool, int, str, str)  # Signal: success(bool), status_code(int), message(str), license_type(str)
-    # Example: finished.emit(True, 200, "Validation successful", "permanent")
-    # Example: finished.emit(False, 401, "Invalid license key", "unknown")
 
-    def __init__(self, task_type: str, params: dict, session: Optional[requests.Session] = None, parent=None):
-        super().__init__(parent)
-        self.task_type = task_type
-        self.params = params
-        self.session = session if session else requests.Session() # Use provided or new session
-        # 安全考虑：禁用可能泄露敏感参数的调试日志
-        # logging.debug(f"NetworkTask initialized for task: {self.task_type} with params: {params}")
-        logging.debug(f"NetworkTask initialized for task: {self.task_type}")
-
-    def run(self):
-        logging.info(f"NetworkTask started for: {self.task_type}")
-        try:
-            if self.task_type == "validate_license":
-                hw_id = self.params.get("hw_id")
-                key = self.params.get("key")
-                if not hw_id or not key:
-                    logging.error("Validate_license task missing hw_id or key.")
-                    self.finished.emit(False, 0, "内部错误: 缺少验证参数。")
-                    return
-                is_valid, status_code, license_type = validate_license_with_server(hw_id, key)
-                # Message can be more specific based on status_code if needed
-                message = "许可证验证成功。" if is_valid else f"许可证验证失败 (状态码: {status_code})。"
-                if status_code == 401 and not is_valid:
-                    message = "许可证密钥无效、过期、已禁用或与硬件ID不匹配。"
-                self.finished.emit(is_valid, status_code, message, license_type)
-
-            elif self.task_type == "register_client":
-                hw_id = self.params.get("hw_id")
-                if not hw_id:
-                    logging.error("Register_client task missing hw_id.")
-                    self.finished.emit(False, 0, "内部错误: 缺少注册参数。", "unknown")
-                    return
-                # Ensure attempt_client_registration uses the passed session
-                is_registered = attempt_client_registration(hw_id, self.session)
-                status_code = 201 if is_registered else 0 # Simplified status, server actual status might vary
-                message = "客户端注册成功或已存在。" if is_registered else "客户端注册失败。"
-                self.finished.emit(is_registered, status_code, message, "unknown")
-
-            elif self.task_type == "migrate_hwid":
-                old_hw_id = self.params.get("old_hw_id")
-                license_key = self.params.get("license_key")
-                if not old_hw_id or not license_key:
-                    logging.error("Migrate_hwid task missing old_hw_id or license_key.")
-                    self.finished.emit(False, 0, "内部错误: 缺少迁移参数。", "unknown")
-                    return
-                migrated_hw_id_or_none = attempt_migration(old_hw_id, license_key, self.session)
-                is_migrated = bool(migrated_hw_id_or_none)
-                status_code = 200 if is_migrated else 0 # Simplified
-                message = f"硬件ID迁移成功。新ID: {migrated_hw_id_or_none[:8]}..." if is_migrated else "硬件ID迁移失败。"
-                # We might want to emit the new_hw_id as well if successful
-                # For now, keeping the signal signature simple (bool, int, str, str)
-                self.finished.emit(is_migrated, status_code, message, "unknown")
-
-            elif self.task_type == "bind_license":
-                hw_id = self.params.get("hw_id")
-                license_key = self.params.get("license_key")
-                if not hw_id or not license_key:
-                    logging.error("Bind_license task missing hw_id or license_key.")
-                    self.finished.emit(False, 0, "内部错误: 缺少绑定参数。", "unknown")
-                    return
-                is_bound = bind_license_to_hwid(hw_id, license_key, self.session)
-                status_code = 200 if is_bound else 0 # Simplified
-                message = "许可证绑定成功。" if is_bound else "许可证绑定失败。"
-                self.finished.emit(is_bound, status_code, message, "unknown")
-
-            else:
-                logging.warning(f"未知网络任务类型: {self.task_type}")
-                self.finished.emit(False, 0, f"未知任务类型: {self.task_type}", "unknown")
-
-        except Exception as e:
-            logging.error(f"网络任务 '{self.task_type}' 执行过程中发生严重错误: {e}", exc_info=True)
-            self.finished.emit(False, 0, f"执行 '{self.task_type}' 时发生内部错误。", "unknown")
-        finally:
-            logging.info(f"NetworkTask finished for: {self.task_type}")
-# --- END ADDED ---
-
-# --- ADDED: Task State Manager ---
 class TaskStateManager(QObject):
     """任务状态管理器，防止重复操作和状态冲突"""
     task_state_changed = Signal(str)  # "starting", "running", "stopping", "stopped"
@@ -1643,7 +926,7 @@ class TaskStateManager(QObject):
 
 # 安全操作管理器已移除
 
-# --- ADDED: Simplified Windows API Hotkey Implementation ---
+
 class SimpleHotkeyListener(QObject):
     """的全局热键监听器，直接使用Windows API"""
     start_requested = Signal()
@@ -1911,7 +1194,7 @@ class SimpleHotkeyListener(QObject):
         if self._thread and self._thread.is_alive():
             self._thread.join(timeout=2.0)
 
-# --- ADDED: Enhanced Hotkey Listener Class ---
+
 class HotkeyListener(QObject):
     start_requested = Signal()
     stop_requested = Signal()
@@ -2061,7 +1344,7 @@ class HotkeyListener(QObject):
             except Exception as e:
                 logging.error(f"HotkeyListener.stop(): 调用 keyboard.unhook_all() 时出错: {e}")
 
-# --- ADDED: System Tray Implementation ---
+
 class SystemTrayManager(QObject):
     """系统托盘管理器，提供备用的启动/停止控制"""
     start_requested = Signal()
@@ -2144,6 +1427,35 @@ class SystemTrayManager(QObject):
             stop_action.triggered.connect(self._on_stop_requested)
             tray_menu.addAction(stop_action)
 
+            # === 主题切换子菜单 ===
+            theme_submenu = tray_menu.addMenu("主题")
+            
+            # 使用 QActionGroup 实现互斥
+            theme_group = QActionGroup(self)
+            theme_group.setExclusive(True)
+            
+            # 明亮模式
+            self.light_action = QAction("明亮模式", self)
+            self.light_action.setCheckable(True)
+            self.light_action.triggered.connect(lambda: self._switch_theme('light'))
+            theme_group.addAction(self.light_action)
+            theme_submenu.addAction(self.light_action)
+            
+            # 暗色模式
+            self.dark_action = QAction("暗色模式", self)
+            self.dark_action.setCheckable(True)
+            self.dark_action.triggered.connect(lambda: self._switch_theme('dark'))
+            theme_group.addAction(self.dark_action)
+            theme_submenu.addAction(self.dark_action)
+            
+            # 初始化选中状态
+            current_theme = config.get('theme', 'dark')
+            if current_theme == 'light':
+                self.light_action.setChecked(True)
+            else:
+                self.dark_action.setChecked(True)
+            # ==========================
+
             tray_menu.addSeparator()
 
             # 退出程序
@@ -2194,211 +1506,56 @@ class SystemTrayManager(QObject):
     def show_message(self, title, message, icon=QSystemTrayIcon.MessageIcon.Information):
         """显示托盘通知"""
         if self.tray_icon:
-            self.tray_icon.showMessage(title, message, icon, 3000)  # 3秒显示时间
+            self.tray_icon.showMessage(title, message, icon, 3000)  # 3 秒显示时间
+        
+    def _switch_theme(self, theme_name: str):
+        """切换主题并保存配置"""
+        import json
+        
+        # 应用主题
+        app = QApplication.instance()
+        if app and hasattr(app, 'theme_manager'):
+            app.theme_manager.set_theme(theme_name)
+            
+            # 更新菜单选中状态
+            if hasattr(self, 'light_action') and hasattr(self, 'dark_action'):
+                if theme_name == 'light':
+                    self.light_action.setChecked(True)
+                    self.dark_action.setChecked(False)
+                else:
+                    self.dark_action.setChecked(True)
+                    self.light_action.setChecked(False)
+            
+            # 保存配置到 config.json
+            try:
+                from main import config
+                config['theme'] = theme_name
+                with open('config.json', 'w', encoding='utf-8') as f:
+                    json.dump(config, f, indent=4, ensure_ascii=False)
+                logging.info(f"主题配置已保存：{theme_name}")
+                
+                # 显示提示
+                theme_names = {'light': '明亮模式', 'dark': '暗色模式'}
+                self.tray_icon.showMessage(
+                    "主题已切换",
+                    f"主题已切换为：{theme_names.get(theme_name, theme_name)}\n重启程序后生效",
+                    QSystemTrayIcon.MessageIcon.Information,
+                    3000
+                )
+            except Exception as e:
+                logging.error(f"保存主题配置失败：{e}")
+                self.tray_icon.showMessage(
+                    "保存失败",
+                    f"无法保存主题配置：{e}",
+                    QSystemTrayIcon.MessageIcon.Critical,
+                    3000
+                )
 
 # Apply the patches
-# REMOVED Patching logic as it depends on MainWindow internal structure
-# MainWindow.__init__ = patched_mainwindow_init
-# MainWindow.closeEvent = patched_mainwindow_closeEvent
-# --- End MainWindow Patching ---
 
-# --- ADDED: Custom License Input Dialog --- #
-class LicenseInputDialog(QDialog):
-    def __init__(self, hardware_id: str, http_session: requests.Session, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("许可证激活")
-        self.hardware_id = hardware_id
-        self.http_session = http_session
-        self.license_key = ""
-        self.network_task = None
 
-        layout = QVBoxLayout(self)
-        layout.setSpacing(10)
+# --- 已删除许可证输入对话框 ---
 
-        hwid_layout = QHBoxLayout()
-        # 显示完整硬件ID，不截断
-        hwid_label = QLabel(f"硬件 ID: {self.hardware_id}")
-        hwid_label.setWordWrap(True)  # 允许换行显示
-        hwid_label.setStyleSheet("font-family: 'Courier New', monospace; font-size: 10px; padding: 4px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px;")
-        copy_button = QPushButton("复制")
-        copy_button.setToolTip("复制完整的硬件 ID 到剪贴板")
-        copy_button.setFixedWidth(60)
-        copy_button.clicked.connect(self.copy_hwid)
-        hwid_layout.addWidget(hwid_label)
-        hwid_layout.addSpacerItem(QSpacerItem(10, 0, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum))
-        hwid_layout.addWidget(copy_button)
-        layout.addLayout(hwid_layout)
-
-        prompt_label = QLabel("请输入您的许可证密钥:")
-        self.key_edit = QLineEdit()
-        self.key_edit.setPlaceholderText("粘贴或输入密钥")
-        self.key_edit.setMinimumWidth(300)
-        layout.addWidget(prompt_label)
-        layout.addWidget(self.key_edit)
-
-        self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        self.button_box.accepted.connect(self.accept_input)
-        self.button_box.rejected.connect(self.reject) # Reject will call QDialog.reject()
-
-        # 设置按钮中文文本
-        ok_button = self.button_box.button(QDialogButtonBox.StandardButton.Ok)
-        cancel_button = self.button_box.button(QDialogButtonBox.StandardButton.Cancel)
-        if ok_button:
-            ok_button.setText("确定")
-        if cancel_button:
-            cancel_button.setText("取消")
-
-        layout.addWidget(self.button_box)
-
-        self.setMinimumWidth(350)
-
-    def copy_hwid(self):
-        app_instance = QApplication.instance()
-        if app_instance:
-            clipboard = app_instance.clipboard()
-            clipboard.setText(self.hardware_id)
-        sender = self.sender()
-        if sender:
-            original_text = sender.text()
-            sender.setText("已复制!")
-            QTimer.singleShot(1500, lambda: sender.setText(original_text))
-
-    def showErrorMessage(self, message: str):
-        existing_error_label = self.findChild(QLabel, "errorLabel")
-        if existing_error_label:
-            existing_error_label.setText(message)
-            existing_error_label.setVisible(True)
-        else:
-            error_label = QLabel(message)
-            error_label.setObjectName("errorLabel")
-            error_label.setStyleSheet("color: red; padding-top: 5px;")
-            layout = self.layout()
-            if layout:
-                key_edit_index = -1
-                for i in range(layout.count()):
-                    item = layout.itemAt(i)
-                    if item and item.widget() == self.key_edit:
-                        key_edit_index = i
-                        break
-                if key_edit_index != -1:
-                    layout.insertWidget(key_edit_index + 1, error_label)
-                else:
-                    layout.addWidget(error_label)
-
-    def clearErrorMessage(self):
-        existing_error_label = self.findChild(QLabel, "errorLabel")
-        if existing_error_label:
-            existing_error_label.setVisible(False)
-
-    def set_ui_busy(self, busy: bool):
-        """启用或禁用UI元素以指示繁忙状态。"""
-        self.key_edit.setEnabled(not busy)
-        ok_button = self.button_box.button(QDialogButtonBox.StandardButton.Ok)
-        if ok_button:
-            ok_button.setEnabled(not busy)
-        cancel_button = self.button_box.button(QDialogButtonBox.StandardButton.Cancel)
-        if cancel_button:
-            cancel_button.setEnabled(not busy)
-        # Update cursor if needed, e.g., to Qt.WaitCursor when busy
-        app_instance = QApplication.instance()
-        if app_instance:
-            app_instance.setOverrideCursor(Qt.WaitCursor if busy else Qt.ArrowCursor)
-
-    def reject(self): # Override reject to ensure cursor is reset if dialog is cancelled while busy
-        self.set_ui_busy(False) # Ensure UI is not left in busy state
-        super().reject() # Call the original QDialog.reject()
-
-    def accept_input(self):
-        self.clearErrorMessage()
-        self.license_key = self.key_edit.text().strip()
-
-        if not self.license_key:
-            self.showErrorMessage("许可证密钥不能为空，请重新输入。")
-            return
-
-        if not self.hardware_id or len(self.hardware_id) != 64:
-            self.showErrorMessage("无效的硬件ID格式，无法进行验证。")
-            logging.error(f"LicenseInputDialog: 硬件ID无效或非SHA256格式: {self.hardware_id}")
-            return
-
-        self.set_ui_busy(True)
-
-        self.network_task = NetworkTask(
-            task_type="validate_license",
-            params={"hw_id": self.hardware_id, "key": self.license_key},
-            session=self.http_session
-        )
-        self.network_task.finished.connect(self.handle_initial_validation_result)
-        self.network_task.start()
-
-    def handle_initial_validation_result(self, is_valid: bool, status_code: int, message: str, license_type: str = "unknown"):
-        logging.info(f"首次异步验证结果: is_valid={is_valid}, status_code={status_code}, message='{message}', license_type='{license_type}'")
-
-        if is_valid:
-            # 保存许可证类型信息
-            self.license_type = license_type
-            logging.info(f"成功 许可证验证成功，类型: {license_type}")
-            self.set_ui_busy(False)
-            self.accept()
-            return
-
-        if status_code == 401: # Unauthorized, potentially because key is not bound
-
-            # UI is already busy from the first validation attempt
-            self.network_task = NetworkTask(
-                task_type="bind_license",
-                params={"hw_id": self.hardware_id, "key": self.license_key},
-                session=self.http_session
-            )
-            self.network_task.finished.connect(self.handle_bind_attempt_result)
-            self.network_task.start()
-        else: # Validation failed for other reasons
-            self.set_ui_busy(False)
-            self.showErrorMessage(message or f"许可证验证失败 (代码: {status_code})。")
-            self.key_edit.setFocus()
-            self.key_edit.selectAll()
-
-    def handle_bind_attempt_result(self, bind_success: bool, bind_status_code: int, bind_message: str, license_type: str = "unknown"):
-        logging.info(f"绑定尝试结果: bind_success={bind_success}, status_code={bind_status_code}, message='{bind_message}'")
-
-        if bind_success:
-
-            # UI is still busy
-            self.network_task = NetworkTask(
-                task_type="validate_license", # Re-validate
-                params={"hw_id": self.hardware_id, "key": self.license_key},
-                session=self.http_session
-            )
-            self.network_task.finished.connect(self.handle_revalidation_result)
-            self.network_task.start()
-        else: # Binding failed
-            self.set_ui_busy(False)
-            self.showErrorMessage(bind_message or f"许可证绑定失败 (代码: {bind_status_code})。")
-            self.key_edit.setFocus()
-            self.key_edit.selectAll()
-
-    def handle_revalidation_result(self, reval_success: bool, reval_status_code: int, reval_message: str, license_type: str = "unknown"):
-        logging.info(f"重新验证结果: reval_success={reval_success}, status_code={reval_status_code}, message='{reval_message}', license_type='{license_type}'")
-        self.set_ui_busy(False)
-
-        if reval_success:
-            # 保存许可证类型信息
-            self.license_type = license_type
-            logging.info(f"成功 重新验证成功，许可证类型: {license_type}")
-            self.accept() # All good!
-        else:
-            self.showErrorMessage(reval_message or f"绑定后重新验证失败 (代码: {reval_status_code})。")
-            self.key_edit.setFocus()
-            self.key_edit.selectAll()
-
-    def get_license_key(self) -> str:
-        return self.license_key
-
-    def get_license_type(self) -> str:
-        return getattr(self, 'license_type', 'unknown')
-# --- END Custom Dialog --- #
-
-# --- ADDED: Define Application Root ---
 # Best effort to find the script's directory, works well for direct execution and some freezing tools.
 try:
     # If running as a script
@@ -2410,7 +1567,7 @@ except NameError:
 logging.info(f"应用程序根目录: {APP_ROOT}")
 # ---------------------------------------------------------
 
-# --- ADDED: Enhanced Global Exception Handler Function ---
+# --- 增强的全局异常处理函数 ---
 def global_exception_handler(exctype, value, traceback_obj):
     """增强的全局异常处理函数，防止程序闪退并提供详细的错误信息。"""
     error_message = "发生了一个意外错误。程序将尝试继续运行，但建议保存工作并重启。"
@@ -2500,82 +1657,28 @@ def _emergency_cleanup():
     try:
         logging.info("执行紧急清理...")
 
-        # 强制垃圾回收
-        import gc
-        gc.collect()
-
-        # 处理Qt事件
+        # 处理 Qt 事件
         try:
             from PySide6.QtWidgets import QApplication
             if QApplication.instance():
                 QApplication.processEvents()
         except:
             pass
-
-        # 清理许可证监控
-        try:
-            cleanup_license_monitoring()
-        except:
-            pass
-
+        
         logging.info("紧急清理完成")
 
     except Exception as e:
         logging.error(f"紧急清理失败: {e}")
-# --- END ADDED ---
 
-# --- 删除了ServerConfigManager类，只使用授权码验证 ---
-
-# --- Enhanced License Validation (License Key Only) ---
-def enhanced_license_validation_with_config(hardware_id: str, license_key: str = None) -> tuple:
-    """ 简化的许可证验证函数
-
-    Args:
-        hardware_id: 硬件ID
-        license_key: 许可证密钥
-
-    Returns:
-        tuple: (is_valid, status_code, validated_license_key, config_data)
-               config_data 始终为 None，因为不再使用配置文件
-    """
-
-    # 跳过实际的许可证验证，直接返回成功
-    try:
-        # 保存许可证类型到全局变量
-        global VALIDATED_LICENSE_TYPE
-        VALIDATED_LICENSE_TYPE = "demo"
-
-        #  启动简化的心跳监控
-        start_resilient_heartbeat_monitor(hardware_id, "demo_key")
-
-        logging.info(" 许可证验证成功（已跳过实际验证）")
-        return True, 200, "demo_key", None
-
-    except Exception as e:
-        logging.error(f" 许可证验证异常: {e}")
-        return False, 500, None, None
 
 if __name__ == "__main__":
-    # --- ADDED: Set the global exception hook at the very beginning ---
+    # 设置全局异常钩子
     sys.excepthook = global_exception_handler
     # -----------------------------------------------------------------
 
-    # 简化安全检查
-    logging.info("安全检测通过")
-    print("成功 安全检测通过")
+    # 启动主程序
 
-    logging.info(" 应用程序安全启动。")
-
-    # 简化反调试检查
-    try:
-        _0x4a2b()  # 简化的反调试检测
-        logging.info("未检测到调试器。")
-    except (AttributeError, OSError): # Handle OSError if not on Windows or API is restricted
-         logging.warning("无法执行反调试检查 (可能不是 Windows 系统或 ctypes 问题)。")
-
-    logging.info("开始授权验证...")
-
-    # 工具 修复：确保我们在正确的执行路径上（已通过管理员权限检查）
+    # 确保我们在正确的执行路径上（已通过管理员权限检查）
     if os.name == 'nt' and not is_admin():
         logging.critical("严重错误：代码执行到此处但仍然没有管理员权限！这不应该发生。")
         logging.critical("可能的原因：管理员权限提升逻辑存在问题。程序将立即退出。")
@@ -2583,8 +1686,28 @@ if __name__ == "__main__":
 
     # !!! IMPORTANT: Need QApplication instance before showing QMessageBox or QDialog !!!
 
-    # 🔧 启动时清理旧的ADB服务，避免协议冲突
+    # 启动时清理旧的ADB 服务，避免协议冲突
     cleanup_old_adb_services()
+
+    # 修复 DPI 感知问题：设置 Qt 的 DPI 感知上下文为 DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE
+    # 这可以避免 SetProcessDpiAwarenessContext() failed: 拒绝访问的错误
+    if os.name == 'nt':
+        try:
+            import ctypes.wintypes
+            user32 = ctypes.windll.user32
+            
+            # 使用 per-monitor DPI 感知（比 V2 版本兼容性更好）
+            # DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE = -3
+            DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE = ctypes.wintypes.HANDLE(-3)
+            
+            result = user32.SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)
+            if result:
+                logging.info("✅ DPI 感知模式已设置为 PER_MONITOR_AWARE")
+            else:
+                error_code = ctypes.get_last_error()
+                logging.warning(f"⚠️ 设置 DPI 感知失败 (错误码：{error_code})，但不影响程序运行")
+        except Exception as e:
+            logging.debug(f"DPI 感知设置异常：{e}")
 
     app = QApplication(sys.argv)
 
@@ -2603,54 +1726,27 @@ if __name__ == "__main__":
     # 注意：Qt没有直接设置工具提示延迟的API，我们在TaskCard中使用立即显示
     # --- END ADDED ---
 
-    # 设置标准对话框按钮中文文本
-    from ui.message_box_translator import setup_message_box_translations
-    setup_message_box_translations()
-
-    # --- ADDED: Initialize Windows 11 Fluent Design Theme System ---
-    logging.info("初始化 Windows 11 Fluent Design 主题系统...")
+    # 初始化 Qt 原生主题系统
+    logging.info("初始化 Qt 原生样式主题系统...")
     try:
-        from ui.theme import ThemeManager, get_current_stylesheet
-        
-        # 读取主题配置
-        theme_config = config.get('theme', 'system')
+        from ui.theme_manager import ThemeManager
         
         # 初始化主题管理器
-        theme_manager = ThemeManager.instance()
-        theme_manager.initialize(theme_config)
+        app.theme_manager = ThemeManager()
         
-        # 将主题管理器设置为app属性，使其全局可访问
-        app.theme_manager = theme_manager
-
-        # 连接主题变化信号，自动更新样式表
-        def on_theme_changed(mode):
-            """主题变化回调"""
-            from ui.theme import get_current_stylesheet, ThemeMode
-
-            # 兼容处理：mode 可能是 ThemeMode 枚举或字符串
-            if isinstance(mode, ThemeMode):
-                mode_str = mode.value
-            else:
-                mode_str = str(mode)
-
-            app.setStyleSheet(get_current_stylesheet())
-            logging.info(f"主题已切换，样式表已更新: {mode_str}")
-
-        theme_manager.theme_changed.connect(on_theme_changed)
-
-        # 应用动态样式表
-        app.setStyleSheet(get_current_stylesheet())
-
-        logging.info(f"主题系统初始化完成: 配置={theme_config}, 实际={theme_manager.get_current_mode().value}")
+        # 从配置读取主题设置
+        theme_mode = config.get('theme', 'system')
+        if theme_mode in ['light', 'dark']:
+            app.theme_manager.set_theme(theme_mode)
+            logging.info(f"应用主题设置：{theme_mode}")
+        else:
+            # 跟随系统
+            app.theme_manager.follow_system_theme()
+            logging.info("主题跟随系统")
+        
+        logging.info("Qt 原生主题系统初始化完成")
     except Exception as theme_error:
-        logging.error(f"主题系统初始化失败: {theme_error}")
-        # 回退到默认亮色样式
-        app.setStyleSheet("""
-            QWidget { color: #333333; }
-            QMainWindow { background-color: #f3f3f3; }
-            QDialog { background-color: #f3f3f3; border-radius: 8px; }
-        """)
-    # -----------------------------------------------------------
+        logging.error(f"主题系统初始化失败：{theme_error}")
 
     # --- ADDED: Initialize State Management System ---
     logging.info("初始化任务状态管理系统...")
@@ -2722,46 +1818,23 @@ if __name__ == "__main__":
 
         app.aboutToQuit.connect(cleanup_on_exit)
 
-    hardware_id = get_hardware_id()
-    if not hardware_id:
-        logging.critical("无法获取硬件 ID，程序无法继续。")
-        QMessageBox.critical(None, "错误", "无法获取必要的硬件信息以进行授权。\n请检查系统设置或联系支持。")
-        sys.exit(1)
+    # 无需硬件ID，直接继续
 
-    # 跳过许可证验证逻辑，直接设置验证成功
-    logging.info(" 跳过许可证验证，直接进入程序")
-    is_validated = True
-    license_key = "demo_key"
-    
-    # 设置验证成功标记
-    sys._license_validated = True
-    logging.info(" 验证成功标记已设置，程序将继续执行")
-
-    # 跳过授权验证循环
-
-    # 直接进入主窗口创建
-
-    #  启动弹性心跳监控
-    start_resilient_heartbeat_monitor(hardware_id, license_key)
-
-    # 跳过授权验证，直接启动主程序
-    logging.info(" 跳过授权验证，启动主程序...")
-    logging.info(f" 授权信息: 硬件ID=***..., 许可证={'已验证' if license_key else '未知'}")
-
-    # 工具 修复：添加主窗口创建的详细调试信息
+    # 添加主窗口创建的详细调试信息
     try:
         logging.info("开始创建主窗口...")
 
-        # Create and show the main window with enhanced state management
+        # Create and show the main window
         main_window = MainWindow(
             task_modules=TASK_MODULES,
             initial_config=config,
-            hardware_id=hardware_id, # Use the final, validated HWID
-            license_key=license_key, # Use the validated license key
             save_config_func=save_config,
-            images_dir=os.path.join(APP_ROOT, "images"),  # 恢复images_dir参数
-            task_state_manager=task_state_manager  # 传递任务状态管理器
+            images_dir=os.path.join(APP_ROOT, "images"),
+            task_state_manager=task_state_manager
         )
+        # 保存 main_window 引用到 app，方便全局访问
+        app.main_window = main_window
+        
         logging.info("主窗口创建成功，准备显示...")
 
         main_window.show()
@@ -2911,7 +1984,7 @@ if __name__ == "__main__":
                 except Exception as e:
                     logging.error(f"通知主窗口ADB初始化完成时出错: {e}")
 
-    # 工具 修复：安全启动异步OCR初始化线程
+    # 安全启动异步 OCR 初始化线程
     try:
         logging.info("准备启动OCR服务异步初始化线程...")
         ocr_thread = threading.Thread(target=async_initialize_ocr, daemon=True)
@@ -2949,7 +2022,7 @@ if __name__ == "__main__":
             logging.error(f"通知主窗口跳过ADB初始化时出错: {e}")
     # --- END 启动优化 ---
 
-    # 工具 修复：安全连接增强状态管理系统
+    # 连接增强状态管理系统
     try:
         logging.info("连接增强状态管理系统...")
 
@@ -2998,7 +2071,7 @@ if __name__ == "__main__":
         logging.error(f"连接增强状态管理系统时发生错误: {signal_connect_error}", exc_info=True)
         # 不中断程序，继续运行
 
-    # 工具 修复：安全启动Qt事件循环
+    # 安全启动 Qt 事件循环
     try:
         logging.info("准备启动Qt事件循环...")
 

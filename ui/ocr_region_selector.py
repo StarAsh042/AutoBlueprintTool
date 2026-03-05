@@ -155,8 +155,6 @@ class OCRRegionSelectorOverlay(QWidget):
 
         logger.info(f" [窗口查找] 检测到模拟器类型: {emulator_type}")
 
-
-
         # 使用统一的窗口查找工具
         hwnd = WindowFinder.find_window(title, emulator_type)
         if hwnd:
@@ -603,8 +601,6 @@ class OCRRegionSelectorOverlay(QWidget):
 
             target_rect = QRect(qt_x, qt_y, qt_width, qt_height)
 
-
-
             # 绘制目标窗口边框（绿色，较粗便于观察）
             pen = QPen(QColor(0, 255, 0), 4)
             painter.setPen(pen)
@@ -749,8 +745,6 @@ class OCRRegionSelectorOverlay(QWidget):
 
                     # 发射选择信号（使用相对坐标）
                     logger.info(f"区域选择完成: ({relative_rect.x()}, {relative_rect.y()}, {relative_rect.width()}, {relative_rect.height()})")
-
-
 
                     # 直接发射信号，让父组件处理坐标转换
                     self.region_selected.emit(relative_rect.x(), relative_rect.y(),

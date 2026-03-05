@@ -25,7 +25,8 @@ class UniversalConfigManager:
         """获取默认配置文件路径"""
         # 获取项目根目录
         current_dir = Path(__file__).parent.parent
-        config_file = current_dir / "config" / "universal_system_config.json"
+        # 使用 config.json 而不是 universal_system_config.json
+        config_file = current_dir / "config.json"
         return str(config_file)
     
     def _load_config(self):
@@ -34,12 +35,14 @@ class UniversalConfigManager:
             if os.path.exists(self._config_file):
                 with open(self._config_file, 'r', encoding='utf-8') as f:
                     self._config_data = json.load(f)
-                logger.info(f"配置文件加载成功: {self._config_file}")
+                logger.info(f"配置文件加载成功：{self._config_file}")
             else:
-                logger.warning(f"配置文件不存在，使用默认配置: {self._config_file}")
+                # 配置文件不存在，创建默认配置文件
+                logger.info(f"配置文件不存在，创建默认配置：{self._config_file}")
                 self._config_data = self._get_default_config()
+                self._save_config_internal()
         except Exception as e:
-            logger.error(f"加载配置文件失败: {e}")
+            logger.error(f"加载配置文件失败：{e}")
             self._config_data = self._get_default_config()
     
     def _get_default_config(self) -> Dict[str, Any]:
@@ -140,6 +143,20 @@ class UniversalConfigManager:
                 
             except Exception as e:
                 logger.error(f"保存配置文件失败: {e}")
+    
+    def _save_config_internal(self):
+        """内部保存配置方法（不加锁，用于初始化时）"""
+        try:
+            # 确保目录存在
+            os.makedirs(os.path.dirname(self._config_file), exist_ok=True)
+            
+            with open(self._config_file, 'w', encoding='utf-8') as f:
+                json.dump(self._config_data, f, indent=2, ensure_ascii=False)
+            
+            logger.info(f"配置文件已创建：{self._config_file}")
+            
+        except Exception as e:
+            logger.error(f"创建配置文件失败：{e}")
     
     def reload_config(self):
         """重新加载配置文件"""

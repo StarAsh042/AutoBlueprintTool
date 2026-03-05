@@ -134,10 +134,6 @@ class GlobalSettingsDialog(QDialog):
 
         # 删除模式选择，统一使用窗口绑定界面
 
-
-
-
-
         # --- Window Settings Group ---
         self.window_settings_group = QGroupBox("窗口设置")
         window_layout = QVBoxLayout(self.window_settings_group)
@@ -189,8 +185,6 @@ class GlobalSettingsDialog(QDialog):
 
         main_layout.addWidget(self.window_settings_group)
 
-
-
         # --- Execution Mode Group ---
         self.exec_mode_group = QGroupBox("执行模式设置")
         exec_mode_layout = QVBoxLayout(self.exec_mode_group)
@@ -214,7 +208,6 @@ class GlobalSettingsDialog(QDialog):
         self.multi_window_delay = 500
 
         main_layout.addWidget(self.exec_mode_group)
-
 
         # --- Hotkey Settings Group ---
         self.hotkey_group = QGroupBox("快捷键设置")
@@ -285,23 +278,21 @@ class GlobalSettingsDialog(QDialog):
         theme_label = QLabel("应用主题:")
         theme_label.setFixedWidth(80)
         self.theme_combo = QComboBox()
-        self.theme_combo.addItems(["跟随系统", "明亮模式", "暗色模式"])
+        self.theme_combo.addItems(["明亮模式", "暗色模式"])
 
         # 从配置中加载当前主题
-        theme_config = current_config.get('theme', 'system')
+        theme_config = current_config.get('theme', 'dark')
         if theme_config == 'light':
             self.theme_combo.setCurrentText("明亮模式")
-        elif theme_config == 'dark':
-            self.theme_combo.setCurrentText("暗色模式")
         else:
-            self.theme_combo.setCurrentText("跟随系统")
+            self.theme_combo.setCurrentText("暗色模式")
 
         theme_select_layout.addWidget(theme_label)
         theme_select_layout.addWidget(self.theme_combo)
         theme_layout.addLayout(theme_select_layout)
 
         # 添加说明
-        theme_info_label = QLabel("跟随系统主题会自动切换明暗模式")
+        theme_info_label = QLabel("主题设置会自动切换明暗模式")
         theme_layout.addWidget(theme_info_label)
 
         main_layout.addWidget(self.theme_group)
@@ -338,11 +329,9 @@ class GlobalSettingsDialog(QDialog):
         button_box.accepted.connect(self._on_accept)
         button_box.rejected.connect(self.reject)
 
-
         # 设置按钮对象名称（使用主题样式的 primaryButton 选择器）
         ok_button.setObjectName("primaryButton")
         cancel_button.setObjectName("")
-
 
         # --- Connect signals ---
 
@@ -360,8 +349,6 @@ class GlobalSettingsDialog(QDialog):
         # 在初始化时检查窗口状态
         self._check_and_cleanup_closed_windows()
         self._update_execution_mode_visibility()
-
-
 
         # --- Apply Theme-Aware Stylesheet ---
         # 注意：不再设置硬编码的白色样式表，而是使用全局主题样式表
@@ -1253,6 +1240,29 @@ class GlobalSettingsDialog(QDialog):
             self.current_config['custom_width'] = self.width_spinbox.value()
             self.current_config['custom_height'] = self.height_spinbox.value()
 
+            # 🔧 新增：保存主题设置并同步到系统托盘菜单
+            theme_text = self.theme_combo.currentText()
+            if theme_text == "明亮模式":
+                theme_mode = 'light'
+            else:
+                theme_mode = 'dark'
+            self.current_config['theme'] = theme_mode
+            
+            # 🔧 关键修复：立即应用主题
+            app = QApplication.instance()
+            if app and hasattr(app, 'theme_manager'):
+                app.theme_manager.set_theme(theme_mode)
+                logger.info(f"已应用主题：{theme_mode}")
+            
+            # 同步更新系统托盘菜单的选中状态
+            app = QApplication.instance()
+            if app and hasattr(app, 'main_window') and hasattr(app.main_window, 'light_action'):
+                if theme_mode == 'light':
+                    app.main_window.light_action.setChecked(True)
+                    app.main_window.dark_action.setChecked(False)
+                else:
+                    app.main_window.dark_action.setChecked(True)
+                    app.main_window.light_action.setChecked(False)
 
             logger.info(f"  已更新 current_config['bound_windows']: {len(self.current_config['bound_windows'])} 个窗口")
             logger.info(f"  已更新 current_config['custom_width']: {self.current_config['custom_width']}")
@@ -1374,8 +1384,6 @@ class GlobalSettingsDialog(QDialog):
             self._add_selected_window_direct(selected_text)
         except Exception as e:
             QMessageBox.warning(self, "错误", f"自动检测失败: {e}")
-
-
 
     def _add_simulator_window(self):
         """添加模拟器窗口"""
@@ -2227,12 +2235,6 @@ class GlobalSettingsDialog(QDialog):
         # 所有常规检测方法都无法准确判断窗口是否真正关闭
         logger.debug("自动窗口检测已禁用，需要手动清理无效窗口")
 
-
-
-
-
-
-
     def _enum_windows_callback(self, hwnd, results_list: list):
         """Callback function for EnumWindows - 过滤掉模拟器主窗口"""
         if win32gui.IsWindowVisible(hwnd):
@@ -2347,10 +2349,8 @@ class GlobalSettingsDialog(QDialog):
         theme_text = self.theme_combo.currentText()
         if theme_text == "明亮模式":
             theme_mode = 'light'
-        elif theme_text == "暗色模式":
-            theme_mode = 'dark'
         else:
-            theme_mode = 'system'
+            theme_mode = 'dark'
 
         settings = {
             'execution_mode': internal_mode,
@@ -2470,8 +2470,6 @@ class GlobalSettingsDialog(QDialog):
             logger.error(f"查找窗口句柄失败: {e}")
             return None
 
-
-
     def _get_window_dpi_info(self, hwnd: int) -> dict:
         """获取窗口DPI信息并保存到配置"""
         try:
@@ -2505,8 +2503,8 @@ class MainWindow(QMainWindow):
     hotkey_start_signal = Signal()
     hotkey_stop_signal = Signal()
 
-    # Accept task_modules, initial_config, hardware_id, license_key, save_config_func, images_dir, and state managers in constructor
-    def __init__(self, task_modules: Dict[str, Any], initial_config: dict, hardware_id: str, license_key: str, save_config_func, images_dir: str, task_state_manager=None):
+    # Accept task_modules, initial_config, save_config_func, images_dir, and state managers in constructor
+    def __init__(self, task_modules: Dict[str, Any], initial_config: dict, save_config_func, images_dir: str, task_state_manager=None):
         super().__init__()
 
         # 确保背景色正确应用（支持主题系统）
@@ -2514,8 +2512,6 @@ class MainWindow(QMainWindow):
 
         self.task_modules = task_modules # Store the task modules
         self.save_config_func = save_config_func # Store the save function
-        self.hardware_id = hardware_id # Store validated HW ID
-        self.license_key = license_key # Store validated license key
 
         self.images_dir = images_dir # <<< RE-ADDED: Store images directory
         self.current_save_path = None # Store path for potential future "Save" without dialog
@@ -2575,8 +2571,17 @@ class MainWindow(QMainWindow):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
-        # 确保主窗口能够接收键盘事件（特别是F10）
+        # 确保主窗口能够接收键盘事件（特别是 F10）
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+                
+        # 使用全局主题管理器（已在 main.py 中初始化）
+        self.theme_manager = QApplication.instance().theme_manager
+                
+        # 从配置加载主题并应用
+        saved_theme = self.config.get('theme', 'system')
+        self.theme_manager.set_theme(saved_theme)
+        logging.info(f"MainWindow 应用主题：{saved_theme}")
+                
         self.setAttribute(Qt.WidgetAttribute.WA_KeyCompression, False)  # 禁用按键压缩，确保所有按键事件都被处理
 
         # 🔧 多任务系统初始化 ---
@@ -2654,8 +2659,6 @@ class MainWindow(QMainWindow):
         self.title_bar.set_file_actions_visible(self.file_actions_visible)
         
         # 初始化工具栏（注释代码已移除）
-
-
 
         # --- Add DPI Notification Widget ---
         from .dpi_notification_widget import DPINotificationWidget, get_dpi_detector
@@ -2817,20 +2820,11 @@ class MainWindow(QMainWindow):
         self.debug_run_action.triggered.connect(self.open_control_center)
         self.debug_run_action.setVisible(True)
 
-
         # --- Global Settings Action ---
         settings_icon = style.standardIcon(QStyle.StandardPixmap.SP_FileDialogListView)
         self.global_settings_action = QAction(settings_icon, "全局设置", self)
         self.global_settings_action.setToolTip("配置目标窗口、执行模式和自定义分辨率等全局选项")
         self.global_settings_action.triggered.connect(self.open_global_settings)
-
-
-
-
-
-
-
-
 
         # --- MODIFIED: Connect clear action to a confirmation method ---
         self.clear_action = QAction(QIcon.fromTheme("document-new", self.style().standardIcon(QStyle.StandardPixmap.SP_FileIcon)), "清空工作流", self)
@@ -2843,8 +2837,6 @@ class MainWindow(QMainWindow):
         self.copy_action.setToolTip("复制选中的卡片")
         # 🔧 动态连接：通过lambda调用当前workflow_view的方法
         self.copy_action.triggered.connect(lambda: self.workflow_view.copy_selected_card() if self.workflow_view else None)
-
-
 
     def toggle_file_actions_visibility(self):
         """Toggles the visibility of Add, Save and Load actions container in the custom title bar."""
@@ -3059,7 +3051,6 @@ class MainWindow(QMainWindow):
                 self.stop_task_hotkey = settings.get('stop_task_hotkey', 'F10')
                 self.record_hotkey = settings.get('record_hotkey', 'F12')
 
-
                 # 更新配置字典
                 self.config.update(settings)
 
@@ -3068,7 +3059,7 @@ class MainWindow(QMainWindow):
                 # 应用主题设置
                 try:
                     theme_mode_str = settings.get('theme', 'system')
-                    from ui.theme import ThemeManager, ThemeMode
+                    from ui.theme_manager import ThemeManager, ThemeMode
 
                     # 将字符串转换为 ThemeMode 枚举
                     theme_map = {
@@ -3078,7 +3069,7 @@ class MainWindow(QMainWindow):
                     }
                     theme_mode = theme_map.get(theme_mode_str, ThemeMode.SYSTEM)
 
-                    theme_manager = ThemeManager.instance()
+                    theme_manager = QApplication.instance().theme_manager
                     theme_manager.set_theme(theme_mode)
                     logger.info(f"主题已切换为: {theme_mode_str}")
                 except Exception as e:
@@ -3283,10 +3274,6 @@ class MainWindow(QMainWindow):
             self.safe_stop_tasks()
         except Exception as e:
             logger.error(f"快捷键停止任务失败: {e}")
-
-
-
-
 
     def run_workflow(self, *args, **kwargs):
         """Initiates the workflow execution in a separate thread."""
@@ -4230,16 +4217,23 @@ class MainWindow(QMainWindow):
     def paintEvent(self, event):
         """Override paint event to draw rounded background and clip contents."""
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing) 
+        # 启用抗锯齿渲染（使用兼容的 API）
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+        
         path = QPainterPath()
         rect = self.rect() 
         corner_radius = 10.0 
         path.addRoundedRect(rect.toRectF(), corner_radius, corner_radius)
+        
+        # 先填充背景，再设置裁剪
+        background_color = QColor(Qt.GlobalColor.white)
+        painter.fillPath(path, QBrush(background_color))
+        
+        # 设置裁剪路径，确保内容不会超出圆角区域
         painter.setClipPath(path)
-        background_color = QColor(Qt.GlobalColor.white) # Or desired background
-        painter.fillRect(rect, background_color)
-        # We don't call super().paintEvent typically
-        # super().paintEvent(event) 
+        
+        # 不调用父类的 paintEvent，避免额外的绘制
 
     def _apply_multi_window_resize(self):
         """应用多窗口分辨率调整（使用通用窗口管理器）"""
@@ -4708,8 +4702,6 @@ class MainWindow(QMainWindow):
                  logging.error(" رغم توفر الإعدادات، لم يتمكن من الوصول إلى win32gui لتغيير حجم النافذة.") # Arabic for: Despite settings being available, could not access win32gui for window resizing.
         else:
             logging.info("单窗口模式：未配置目标窗口标题或自定义分辨率，跳过初始大小调整。")
-
-
 
     def _find_window_by_title(self, title):
         """查找窗口，支持顶级窗口和子窗口"""
@@ -6387,8 +6379,6 @@ class MainWindow(QMainWindow):
                 return False
 
         return save_successful
-
-
 
     def _on_multi_window_progress(self, window_title: str, status: str):
         """处理多窗口执行进度"""

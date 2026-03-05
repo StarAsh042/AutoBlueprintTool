@@ -18,7 +18,6 @@ from .workflow_task_manager import WorkflowTaskManager
 
 logger = logging.getLogger(__name__)
 
-
 class WorkflowTabWidget(QTabWidget):
     """
     工作流标签页控件

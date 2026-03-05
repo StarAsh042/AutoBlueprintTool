@@ -23,7 +23,6 @@ except ImportError:
     OCR_STOP_MANAGER_AVAILABLE = False
     logger.warning("OCR停止管理器不可用")
 
-
 class MultiWindowStopIntegration(QObject):
     """多窗口停止管理器集成类"""
     
@@ -191,7 +190,6 @@ class MultiWindowStopIntegration(QObject):
         # 清理映射
         self.window_mapping.clear()
 
-
 def create_enhanced_executor_with_stop_manager(executor_class, *args, **kwargs):
     """创建带有增强停止管理器的执行器"""
     # 创建原始执行器
@@ -214,7 +212,6 @@ def create_enhanced_executor_with_stop_manager(executor_class, *args, **kwargs):
         logger.error(f"执行器停止管理器集成失败: {executor_class.__name__}")
     
     return executor
-
 
 class StopManagerMixin:
     """停止管理器混入类，可以被现有执行器继承"""
@@ -263,7 +260,6 @@ class StopManagerMixin:
         if hasattr(self, 'stop_integration'):
             self.stop_integration.cleanup()
 
-
 # 使用示例和测试函数
 def test_stop_manager_integration():
     """测试停止管理器集成"""
@@ -299,7 +295,6 @@ def test_stop_manager_integration():
     except Exception as e:
         logger.error(f"停止管理器集成测试失败: {e}", exc_info=True)
         return False
-
 
 if __name__ == "__main__":
     # 配置日志
